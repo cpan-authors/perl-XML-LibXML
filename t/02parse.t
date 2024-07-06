@@ -14,7 +14,7 @@ use locale;
 
 POSIX::setlocale(LC_ALL, "C");
 
-use Test::More tests => 531;
+use Test::More tests => 532;
 use IO::File;
 
 use XML::LibXML::Common qw(:libxml);
@@ -955,6 +955,16 @@ EOXML
     like( $@, qr/Read more bytes than requested/,
           'UTF-8 encoding layer throws exception' );
     close($fh);
+}
+
+{
+    my $parser = XML::LibXML->new();
+
+    eval {
+        $parser->parse_file('t/data/invalid-entity.xml');
+    };
+    like( $@, qr|<a xmlns:xml='foo'/>|,
+          'error context is inside entity' );
 }
 
 sub tsub {

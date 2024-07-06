@@ -9452,10 +9452,6 @@ context_and_column( self )
 	}
        if (ctxt == NULL) XSRETURN_EMPTY;
        input = ctxt->input;
-       if ((input != NULL) && (input->filename == NULL) &&
-            (ctxt->inputNr > 1)) {
-            input = ctxt->inputTab[ctxt->inputNr - 2];
-        }
         if (input == NULL) XSRETURN_EMPTY;
 	cur = input->cur;
 	base = input->base;
