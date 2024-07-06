@@ -945,15 +945,7 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
         if ((parserOptions & XML_PARSE_DTDLOAD) == 0) {
             parserOptions &= ~(XML_PARSE_DTDVALID | XML_PARSE_DTDATTR | XML_PARSE_NOENT );
         }
-        if (ctxt) xmlCtxtUseOptions(ctxt, parserOptions ); /* Note: sets ctxt->linenumbers = 1 */
-
-        item =  hv_fetch( real_obj, "XML_LIBXML_LINENUMBERS", 22, 0 );
-        if ( item != NULL && SvTRUE(*item) ) {
-            if (ctxt) ctxt->linenumbers = 1;
-        }
-        else {
-            if (ctxt) ctxt->linenumbers = 0;
-        }
+        if (ctxt) xmlCtxtUseOptions(ctxt, parserOptions);
 
        /* If a user installed a process-global loader via externalEntityLoader(),
         * leave it alone -- they're the policy authority. See CLAUDE.md
