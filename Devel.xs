@@ -39,18 +39,12 @@
 #endif
 
 #ifdef HAVE_LIBXML_MEMORY_DEBUG
-static void *	xmlMemMallocAtomic(size_t size)
-{
-    return xmlMallocAtomicLoc(size, "none", 0);
-}
-
 static int debug_memory()
 {
-    return xmlGcMemSetup( xmlMemFree,
-                          xmlMemMalloc,
-                          xmlMemMallocAtomic,
-                          xmlMemRealloc,
-                          xmlMemStrdup);
+    return xmlMemSetup(xmlMemFree,
+                       xmlMemMalloc,
+                       xmlMemRealloc,
+                       xmlMemStrdup);
 }
 #endif
 
