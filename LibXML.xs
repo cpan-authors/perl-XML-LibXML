@@ -9698,7 +9698,7 @@ encodeToUTF8( encoding, string )
                     in    = xmlBufferCreateStatic((void*)realstring, len );
                     out   = xmlBufferCreate();
                     if ( xmlCharEncInFunc( coder, out, in ) >= 0 ) {
-                        tstr = xmlStrdup( out->content );
+                        tstr = xmlBufferDetach( out );
                     }
 
                     xmlBufferFree( in );
@@ -9788,7 +9788,7 @@ decodeFromUTF8( encoding, string )
                     xmlBufferCCat( in, (char*) realstring );
                     if ( xmlCharEncOutFunc( coder, out, in ) >= 0 ) {
                         len  = xmlBufferLength( out );
-                        tstr = xmlCharStrndup( (char*) xmlBufferContent( out ), len );
+                        tstr = xmlBufferDetach( out );
                     }
 
                     xmlBufferFree( in );
