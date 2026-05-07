@@ -3150,7 +3150,7 @@ createDocument( CLASS, version="1.0", encoding=NULL )
         PERL_UNUSED_VAR(ix);
         doc = xmlNewDoc((const xmlChar*)version);
         if (encoding && *encoding != 0) {
-            doc->encoding = (const xmlChar*)xmlStrdup((const xmlChar*)encoding);
+            doc->encoding = xmlStrdup((const xmlChar*)encoding);
         }
         RETVAL = PmmNodeToSv(INT2PTR(xmlNodePtr,doc),NULL);
     OUTPUT:
