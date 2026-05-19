@@ -1,0 +1,14 @@
+# Use ExtUtils::Manifest's built-in skip list (covers .git, MYMETA, blib,
+# MANIFEST.bak, backups, OS metadata, etc.) in addition to the patterns below.
+#!include_default
+
+# Mercurial leftovers
+^\.hgignore$
+
+# Local tooling / editor / agent configs not shipped in the dist
+^\.tidyallrc$
+^CLAUDE\.md$
+
+# Stray local file, not part of the distribution
+^PHISHS\.CHANGES$
+
