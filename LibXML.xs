@@ -1025,40 +1025,11 @@ LibXML_cleanup_parser() {
 int
 LibXML_test_node_name( xmlChar * name )
 {
-    xmlChar * cur = name;
-    int tc  = 0;
-    int len = 0;
-
-    if ( cur == NULL || *cur == 0 ) {
-        /* warn("name is empty" ); */
+    if ( name == NULL || *name == 0 ) {
         return(0);
     }
 
-    tc = domParseChar( cur, &len );
-
-    if ( !( IS_LETTER( tc ) || (tc == '_') || (tc == ':')) ) {
-        /* warn( "is not a letter\n" ); */
-        return(0);
-    }
-
-    tc  =  0;
-    cur += len;
-
-    while (*cur != 0 ) {
-        tc = domParseChar( cur, &len );
-
-        if (!(IS_LETTER(tc) || IS_DIGIT(tc) || (tc == '_') ||
-             (tc == '-') || (tc == ':') || (tc == '.') ||
-             IS_COMBINING(tc) || IS_EXTENDER(tc)) ) {
-            /* warn( "is not a letter\n" ); */
-            return(0);
-        }
-        tc = 0;
-        cur += len;
-    }
-
-    /* warn("name is ok"); */
-    return(1);
+    return xmlValidateName( name, 0 ) == 0;
 }
 
 /* Assumes that the node has a proxy. */
