@@ -170,6 +170,7 @@ t/48_replaceNode_DTD_nodes_rT_80521.t
 t/48_rt123379_setNamespace.t
 t/48_rt55000.t
 t/48_rt93429_recover_2_in_html_parsing.t
+t/48_security_oob_utf8_gh146.t
 t/48importing_nodes_IDs_rt_69520.t
 t/49_load_html.t
 t/49callbacks_returning_undef.t
