@@ -2808,9 +2808,13 @@ _externalEntityLoader( loader )
         SV* loader
     CODE:
         {
+            /* Always return a fresh refcount-1 SV: xsubpp auto-mortalizes
+             * RETVAL for SV*, and mortalizing the &PL_sv_undef singleton on
+             * every call eventually drives its refcount negative (SEGV under
+             * repeated invocation). Use newSV(0) for "no previous handler". */
             RETVAL = EXTERNAL_ENTITY_LOADER_FUNC
                 ? newSVsv(EXTERNAL_ENTITY_LOADER_FUNC)
-                : &PL_sv_undef;
+                : newSV(0);
 
             if (SvOK(loader))
             {

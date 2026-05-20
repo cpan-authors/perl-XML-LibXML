@@ -182,6 +182,7 @@ t/49global_extent_after_no_network.t
 t/49global_extent_lifecycle.t
 t/49global_extent_private.t
 t/49global_extent_reset.t
+t/49global_extent_with_no_network.t
 t/50devel.t
 t/51_parse_html_string_rt87089.t
 t/60error_prev_chain.t
