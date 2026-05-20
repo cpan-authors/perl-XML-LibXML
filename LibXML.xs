@@ -4695,8 +4695,7 @@ _attributes( self )
         int wantarray = GIMME_V;
     PPCODE:
         PERL_UNUSED_VAR(ix);
-        if ( self->type != XML_ATTRIBUTE_NODE
-             && self->type != XML_DTD_NODE ) {
+        if ( self->type == XML_ELEMENT_NODE ) {
             attr = self->properties;
             while ( attr != NULL ) {
                 if ( wantarray != G_SCALAR ) {
@@ -4758,12 +4757,11 @@ int
 hasAttributes( self )
         xmlNodePtr self
     CODE:
-        if ( self->type == XML_ATTRIBUTE_NODE
-             || self->type == XML_DTD_NODE ) {
-            RETVAL = 0;
+        if ( self->type == XML_ELEMENT_NODE ) {
+            RETVAL =  self->properties ? 1 : 0 ;
         }
         else {
-            RETVAL =  self->properties ? 1 : 0 ;
+            RETVAL = 0;
         }
     OUTPUT:
         RETVAL

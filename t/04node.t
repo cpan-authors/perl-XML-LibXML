@@ -11,7 +11,7 @@
 # since all tests are run on a preparsed
 
 # Should be 166.
-use Test::More tests => 195;
+use Test::More tests => 201;
 
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
@@ -721,5 +721,36 @@ EOF
     my $ret = $orig->addSibling(XML::LibXML::Text->new('Free'));
     # TEST
     is( $ret->textContent, 'Double Free', 'merge text nodes with addSibling' );
+}
+
+{
+    # GH #160 / RT #157828
+    # attributes() and hasAttributes() must not crash on entity declaration
+    # nodes (XML_ENTITY_DECL, type 17). Entity decl nodes use a different
+    # struct layout (xmlEntity) where the 'properties' offset contains
+    # unrelated fields. Accessing self->properties on such nodes reads
+    # garbage and segfaults.
+    my $doc = XML::LibXML->new->parse_string(
+        '<?xml version="1.0"?><!DOCTYPE doc [ <!ENTITY nbsp "&#xa0;"> ]><doc/>');
+    my $dtd = ($doc->childNodes())[0];
+    my ($entity) = $dtd->childNodes();
+
+    # TEST
+    is($entity->nodeType, XML_ENTITY_DECL, 'entity decl node type');
+    # TEST
+    is($entity->nodeName, 'nbsp', 'entity decl node name');
+    # TEST
+    is($entity->hasAttributes, 0, 'entity decl hasAttributes returns 0');
+
+    my @attrs = $entity->attributes();
+    # TEST
+    is(scalar @attrs, 0, 'entity decl attributes() returns empty list');
+
+    my $map = $entity->attributes();
+    # TEST
+    is($map->length, 0, 'entity decl attributes() returns empty NamedNodeMap in scalar context');
+
+    # TEST
+    is($doc->hasAttributes, 0, 'document node hasAttributes returns 0');
 }
 
