@@ -26,6 +26,8 @@ char ** XS_unpack_charPtrPtr(SV* rv )
 	AV *av;
 	SV **ssv;
 	char **s;
+	char *p;
+	STRLEN len;
 	int avlen;
 	int x;
 
@@ -52,11 +54,14 @@ char ** XS_unpack_charPtrPtr(SV* rv )
 		ssv = av_fetch( av, x, 0 );
 		if( ssv != NULL ){
 			if( SvPOK( *ssv ) ){
-				s[x] = (char *)safemalloc( SvCUR(*ssv) + 1 );
+				p = SvPV( *ssv, len );
+				s[x] = (char *)safemalloc( len + 1 );
 				if( s[x] == NULL )
 					warn("XS_unpack_charPtrPtr: unable to malloc char*");
-				else
-					strcpy( s[x], SvPV( *ssv, PL_na ) );
+				else {
+					memcpy( s[x], p, len );
+					s[x][len] = '\0';
+				}
 			}
 			else
 				warn("XS_unpack_charPtrPtr: array elem %d was not a string.", x );
