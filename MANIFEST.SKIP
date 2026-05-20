@@ -8,6 +8,7 @@
 # Local tooling / editor / agent configs not shipped in the dist
 ^\.tidyallrc$
 ^CLAUDE\.md$
+^\.claude/
 
 # Stray local file, not part of the distribution
 ^PHISHS\.CHANGES$
