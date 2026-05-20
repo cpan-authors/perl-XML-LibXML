@@ -186,7 +186,7 @@ void CBufferPurge(struct CBuffer *buffer) {
 	struct CBufferChunk *p1;
 	struct CBufferChunk *p2;
 
-	if (buffer == NULL || buffer->head->data == NULL) {
+	if (buffer == NULL || buffer->head == NULL || buffer->head->data == NULL) {
 		return;
 	}
 
@@ -286,7 +286,7 @@ xmlChar * CBufferCharacters(struct CBuffer *buffer) {
 		croak("Out of memory in SAX character buffering");
 	}
 
-	if (buffer->head->data == NULL) {
+	if (buffer->head == NULL || buffer->head->data == NULL) {
 		return NULL;
 	}
 
@@ -1204,7 +1204,7 @@ int PSaxCharactersFlush (void *ctx, struct CBuffer *buffer) {
     int len;
     int ret;
 
-    if (buffer->head->data == NULL) {
+    if (buffer->head == NULL || buffer->head->data == NULL) {
         return 1;
     }
 
