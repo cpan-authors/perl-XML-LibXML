@@ -1,5 +1,33 @@
 Revision history for Perl extension XML::LibXML
 
+2.0212  2026-05-19
+
+    [BUG FIXES]
+    - Ship POD files in the CPAN tarball. The per-class .pod files
+      generated from docs/libxml.dbk were gitignored, and nothing in
+      the dist chain was producing them, so recent tarballs shipped
+      without POD. The .pod files are now tracked in git (bison-style),
+      so `make dist` includes them via MANIFEST and the documentation
+      reaches CPAN consumers again. Also eliminates the bootstrap
+      problem of needing XML::LibXML installed to build XML::LibXML's
+      docs, and silences the "kit incomplete" warning from
+      `perl Makefile.PL` on a fresh checkout.
+
+    [MAINTENANCE]
+    - Add a `pod-drift` CI job that runs `make pod_docs` and fails on
+      any diff, catching forgotten POD regenerations after edits to
+      docs/libxml.dbk.
+    - Move xmllibxmldocs.pl from example/ to scripts/. It is a
+      maintenance tool that emits source files (POD), not a usage
+      example of XML::LibXML; scripts/ already houses similar
+      build/dev tooling.
+    - Skip t/release-kwalitee.t outside a dist tarball. The
+      Test::Kwalitee `has_meta_yml` check was failing under
+      `make test` in author mode because META.yml is only generated
+      by `make dist`. The test now skips cleanly when META.yml is
+      absent and still runs the full 18-check suite under
+      `make disttest` against the unpacked tarball.
+
 2.0211  2026-05-19
 
     [SECURITY / BUG FIXES]

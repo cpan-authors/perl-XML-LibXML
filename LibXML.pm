@@ -30,7 +30,7 @@ use XML::LibXML::XPathContext;
 use IO::Handle; # for FH reads called as methods
 
 BEGIN {
-$VERSION = "2.0211"; # VERSION TEMPLATE: DO NOT CHANGE
+$VERSION = "2.0212"; # VERSION TEMPLATE: DO NOT CHANGE
 our $ABI_VERSION = 2;
 require Exporter;
 use XSLoader ();

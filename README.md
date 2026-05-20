@@ -204,6 +204,7 @@ For bug reports and pull requests, please use the issue tracker at
 - Subsequently maintained for many years by Shlomi Fish
   (last release: 2.0210, January 2024)
 - Release 2.0211, May 2026, under the cpan-authors team
+- Release 2.0212, May 2026 (POD shipping fix)
 - Now maintained by the cpan-authors team at
   <https://github.com/cpan-authors/XML-LibXML>
 
