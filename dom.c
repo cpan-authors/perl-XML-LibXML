@@ -1180,6 +1180,7 @@ domNodeNormalize( xmlNodePtr node )
         break;
     case XML_ELEMENT_NODE:
         domNodeNormalizeList( (xmlNodePtr) node->properties );
+        /* fall through */
     case XML_ATTRIBUTE_NODE:
     case XML_DOCUMENT_NODE:
         return( domNodeNormalizeList( node->children ) );
