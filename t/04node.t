@@ -11,7 +11,7 @@
 # since all tests are run on a preparsed
 
 # Should be 166.
-use Test::More tests => 201;
+use Test::More tests => 207;
 
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
@@ -754,3 +754,37 @@ EOF
     is($doc->hasAttributes, 0, 'document node hasAttributes returns 0');
 }
 
+{
+    # Namespace declaration functions must not crash on non-element nodes.
+    # nsDef only exists in the xmlNode struct layout; accessing it on
+    # entity declarations (xmlEntity), DTD nodes, or text nodes reads
+    # garbage and can segfault.
+    my $doc = XML::LibXML->new->parse_string(
+        '<?xml version="1.0"?><!DOCTYPE doc [ <!ENTITY nbsp "&#xa0;"> ]>'
+        . '<doc xmlns:foo="http://example.com"/>');
+    my $dtd = ($doc->childNodes())[0];
+    my ($entity) = $dtd->childNodes();
+    my $text = XML::LibXML::Text->new('hello');
+
+    # Call Element XS methods on non-element nodes via direct package dispatch.
+    # Before the type guard fix, these would read garbage from nsDef and crash.
+    # TEST
+    is(XML::LibXML::Element::setNamespaceDeclURI($entity, undef, 'http://new'), 0,
+       'setNamespaceDeclURI returns 0 on entity decl node');
+    # TEST
+    is(XML::LibXML::Element::setNamespaceDeclPrefix($entity, undef, 'bar'), 0,
+       'setNamespaceDeclPrefix returns 0 on entity decl node');
+    # TEST
+    ok(!defined XML::LibXML::Element::_getNamespaceDeclURI($entity, 'foo'),
+       '_getNamespaceDeclURI returns undef on entity decl node');
+
+    # TEST
+    is(XML::LibXML::Element::setNamespaceDeclURI($text, undef, 'http://new'), 0,
+       'setNamespaceDeclURI returns 0 on text node');
+    # TEST
+    is(XML::LibXML::Element::setNamespaceDeclPrefix($text, undef, 'bar'), 0,
+       'setNamespaceDeclPrefix returns 0 on text node');
+    # TEST
+    ok(!defined XML::LibXML::Element::_getNamespaceDeclURI($text, 'foo'),
+       '_getNamespaceDeclURI returns undef on text node');
+}
