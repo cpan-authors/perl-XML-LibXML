@@ -197,3 +197,20 @@ docs : pure_all
 EOF
   return $str;
 }
+
+# Build the generated .pod files (gitignored, listed in MANIFEST) and then
+# fail if the generator produced anything missing from MANIFEST. Hooked into
+# distdir so `make dist` ships the .pod files; intentionally NOT a dependency
+# of `test` so the test target stays pod-free.
+sub MY::postamble {
+  return <<'POSTAMBLE';
+
+pod_docs : pure_all
+	$(NOECHO) $(PERL) -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"$(VERSION)"'</edition>}' docs/libxml.dbk
+	$(NOECHO) $(PERL) -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
+	$(NOECHO) $(PERL) -MExtUtils::Manifest=maniread -e 'my %m = %{maniread()}; my @f = grep { -f $$_ } ("LibXML.pod", glob("lib/XML/LibXML/*.pod lib/XML/LibXML/SAX/*.pod")); my @missing = sort grep { !exists $$m{$$_} } @f; if (@missing) { warn "pod_docs: generated .pod files missing from MANIFEST:\n  " . join("\n  ", @missing) . "\nAdd these entries to MANIFEST.\n"; exit 1 }'
+
+create_distdir : pod_docs
+
+POSTAMBLE
+}
