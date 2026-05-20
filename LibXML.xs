@@ -156,22 +156,6 @@ static xmlExternalEntityLoader LibXML_old_ext_ent_loader_global = NULL;
 /* global external entity loader */
 SV *EXTERNAL_ENTITY_LOADER_FUNC = (SV *)NULL;
 
-static int
-LibXML_is_network_uri(const char *URL)
-{
-    if (URL == NULL)
-    {
-        return 0;
-    }
-    if (xmlStrncmp(BAD_CAST URL, BAD_CAST "http://", 7) == 0 ||
-        xmlStrncmp(BAD_CAST URL, BAD_CAST "https://", 8) == 0 ||
-        xmlStrncmp(BAD_CAST URL, BAD_CAST "ftp://", 6) == 0)
-    {
-        return 1;
-    }
-    return 0;
-}
-
 SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
 
 /* ****************************************************************
@@ -819,6 +803,10 @@ LibXML_output_close_handler( void * handler )
     return 1;
 }
 
+/* Dispatcher for user-installed Perl entity loaders (per-parser
+ * "ext_ent_handler" or process-global externalEntityLoader()). DO NOT add
+ * URL filtering or no_network checks here -- the user's callback is the
+ * policy authority. See CLAUDE.md "Entity loaders" and GH #168/#133/#143. */
 xmlParserInputPtr
 LibXML_load_external_entity(
         const char * URL,
@@ -836,15 +824,6 @@ LibXML_load_external_entity(
     if (ctxt->_private == NULL && EXTERNAL_ENTITY_LOADER_FUNC == NULL)
     {
         return xmlNewInputFromFile(ctxt, URL);
-    }
-
-    if (ctxt != NULL && (ctxt->options & XML_PARSE_NONET) &&
-        LibXML_is_network_uri(URL))
-    {
-        xmlGenericError(xmlGenericErrorContext,
-            "Attempt to load network entity %s\n",
-            URL != NULL ? URL : "(null)");
-        return NULL;
     }
 
     if (URL == NULL) {
@@ -988,6 +967,9 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
             if (ctxt) ctxt->linenumbers = 0;
         }
 
+       /* If a user installed a process-global loader via externalEntityLoader(),
+        * leave it alone -- they're the policy authority. See CLAUDE.md
+        * "Entity loaders". */
        if(EXTERNAL_ENTITY_LOADER_FUNC == NULL)
        {
             item = hv_fetch(real_obj, "ext_ent_handler", 15, 0);
@@ -7401,14 +7383,16 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
                                   saved_error );
 #endif
 
-        if ( parser_options & XML_PARSE_NONET ) {
+        /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
+         * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( parser_options & XML_PARSE_NONET )
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
@@ -7450,14 +7434,16 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
                                   saved_error );
 #endif
 
-        if ( parser_options & XML_PARSE_NONET ) {
+        /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
+         * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( parser_options & XML_PARSE_NONET )
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
@@ -7492,14 +7478,16 @@ parse_document( self, doc, parser_options = 0, recover = FALSE )
                                   saved_error );
 #endif
 
-        if ( parser_options & XML_PARSE_NONET ) {
+        /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
+         * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( parser_options & XML_PARSE_NONET )
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
@@ -7591,14 +7579,16 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
                                   (xmlSchemaValidityWarningFunc)LibXML_error_handler_ctx,
                                   saved_error );
 
-        if ( parser_options & XML_PARSE_NONET ) {
+        /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
+         * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
         }
 
         RETVAL = xmlSchemaParse( rngctxt );
 
-        if ( parser_options & XML_PARSE_NONET )
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
 
         xmlSchemaFreeParserCtxt( rngctxt );
@@ -7641,14 +7631,16 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
                                   (xmlSchemaValidityWarningFunc)LibXML_error_handler_ctx,
                                   saved_error );
 
-        if ( parser_options & XML_PARSE_NONET ) {
+        /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
+         * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
         }
 
         RETVAL = xmlSchemaParse( rngctxt );
 
-        if ( parser_options & XML_PARSE_NONET )
+        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
 
         xmlSchemaFreeParserCtxt( rngctxt );
