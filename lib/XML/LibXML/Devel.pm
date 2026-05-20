@@ -11,7 +11,7 @@ use warnings;
 
 use XML::LibXML;
 
-our $VERSION = "2.0210_11"; # VERSION TEMPLATE: DO NOT CHANGE
+our $VERSION = "2.0211"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use 5.008_000;
 

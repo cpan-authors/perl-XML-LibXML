@@ -22,7 +22,7 @@ require Exporter;
 
 our @ISA = qw(Exporter);
 
-our $VERSION = "2.0210_11"; # VERSION TEMPLATE: DO NOT CHANGE
+our $VERSION = "2.0211"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use XML::LibXML qw(:libxml);
 

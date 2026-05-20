@@ -1,6 +1,6 @@
 Revision history for Perl extension XML::LibXML
 
-2.0210_11  2026-05-19  (developer/trial release)
+2.0211  2026-05-19
 
     [SECURITY / BUG FIXES]
     - Prevent out-of-bounds UTF-8 read in domParseChar by replacing it

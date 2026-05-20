@@ -14,7 +14,7 @@ use XML::LibXML::Literal;
 use strict;
 use warnings;
 
-our $VERSION = "2.0210_11"; # VERSION TEMPLATE: DO NOT CHANGE
+our $VERSION = "2.0211"; # VERSION TEMPLATE: DO NOT CHANGE
 
 use overload
         '""' => \&value,
