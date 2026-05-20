@@ -187,10 +187,10 @@ sub MY::manifypods {
   $str .= <<"EOF";
 docs-fast :
 \t\@$^X -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"\$(VERSION)"'</edition>}' docs/libxml.dbk
-\t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
+\t\@$^X -Iblib/arch -Iblib/lib scripts/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 docs : pure_all
 \t\@$^X -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"\$(VERSION)"'</edition>}' docs/libxml.dbk
-\t\@$^X -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
+\t\@$^X -Iblib/arch -Iblib/lib scripts/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 \t\@$^X -pi.old -e 's/a/a/' Makefile.PL
 \t\@echo "==> YOU MUST NOW RE-RUN $^X Makefile.PL <=="
 \t\@false
@@ -208,7 +208,7 @@ sub MY::postamble {
 
 pod_docs : pure_all
 	$(NOECHO) $(PERL) -pi~ -e 's{<edition>[0-9.]*</edition>}{<edition>'"$(VERSION)"'</edition>}' docs/libxml.dbk
-	$(NOECHO) $(PERL) -Iblib/arch -Iblib/lib example/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
+	$(NOECHO) $(PERL) -Iblib/arch -Iblib/lib scripts/xmllibxmldocs.pl docs/libxml.dbk lib/XML/LibXML/
 
 POSTAMBLE
 }

@@ -50,7 +50,6 @@ example/thedieline.rss
 example/utf-16-1.html
 example/utf-16-2.html
 example/utf-16-2.xml
-example/xmllibxmldocs.pl
 example/xmlns/badguy.xml
 example/xmlns/goodguy.xml
 example/xpath.pl
@@ -118,6 +117,7 @@ scripts/tag-release.pl
 scripts/Test.pm-to-Test-More.pl
 scripts/total-build-and-test.bash
 scripts/update-HACKING-file.bash
+scripts/xmllibxmldocs.pl
 t/00-report-prereqs.t
 t/01basic.t
 t/02parse.t
