@@ -34,9 +34,6 @@ jobs:
           sudo: true
           cpanfile: ".github/cpanfile"
           args: "--with-develop"
-      # author testing: build docs first, then re-run Makefile.PL
-      - run: perl Makefile.PL
-      - run: "make -j$(nproc) docs ||:"
       - run: perl Makefile.PL
       - run: make -j$(nproc)
       - run: make test
@@ -363,3 +360,33 @@ jobs:
         run: make
       - name: Run Tests
         run: make test
+
+  pod-drift:
+    name: "POD drift check"
+    needs: [author-testing, coverage, asan, downstream, linux, BSDs, fedora, macOS, windows]
+    runs-on: ubuntu-latest
+
+    env:
+      PERL_USE_UNSAFE_INC: 0
+
+    steps:
+      - name: install libxml2-dev
+        run: |
+          sudo apt-get update -y ||:
+          sudo apt-get --no-install-recommends -y install libxml2-dev
+      - uses: actions/checkout@v6
+      - name: Install deps
+        uses: perl-actions/install-with-cpm@v2
+        with:
+          sudo: true
+          cpanfile: ".github/cpanfile"
+      - run: perl Makefile.PL
+      - run: make -j$(nproc)
+      - name: Check POD is up to date with docs/libxml.dbk
+        run: |
+          make pod_docs
+          git diff --quiet -- LibXML.pod lib || {
+            echo "::error::POD is out of sync with docs/libxml.dbk. Run 'make pod_docs' locally and commit the changes."
+            git --no-pager diff --stat -- LibXML.pod lib
+            exit 1
+          }

@@ -1,0 +1,118 @@
+=head1 NAME
+
+XML::LibXML::NamedNodeMap - A map for named nodes
+
+=head1 SYNOPSIS
+
+
+
+  use XML::LibXML;
+  my $map = XML::LibXML::NamedNodeMap->new(@nodes);
+
+  my $nodes_list = $map->nodes();
+
+  my $node_with_index_2 = $map->item(2);
+
+  my $length = $map->length;
+  my $nodes_ref = $node->nodes()
+  my $node_2 = $map->item(2);
+  my $node = $map->getNamedItem('phone_number');
+  $map->setNamedItem($new_node)
+  $map->removeNamedItem($name)
+
+=head1 DESCRIPTION
+
+XML::LibXML::NamedNodeMap maps nodes' names to nodes.
+
+
+=head1 METHODS
+
+=over 4
+
+=item length
+
+  my $length = $map->length;
+
+Returns the number of nodes in the map.
+
+
+=item nodes
+
+  my $nodes_ref = $node->nodes()
+
+Returns a reference to the list of nodes.
+
+
+=item item
+
+  my $node_2 = $map->item(2);
+
+Returns the node with the index of the argument (starting from 0)
+
+
+=item getNamedItem
+
+  my $node = $map->getNamedItem('phone_number');
+
+Returns the node with the name.
+
+
+=item setNamedItem
+
+  $map->setNamedItem($new_node)
+
+Sets the node with the same name as C<<<<<< $new_node >>>>>> to C<<<<<< $new_node >>>>>>.
+
+
+=item removeNamedItem
+
+  $map->removeNamedItem($name)
+
+Remove the item with the name C<<<<<< $name >>>>>>.
+
+
+=item getNamedItemNS
+
+I<<<<<< Not implemented yet. >>>>>>.
+
+
+=item setNamedItemNS
+
+I<<<<<< Not implemented yet. >>>>>>.
+
+
+=item removeNamedItemNS
+
+I<<<<<< Not implemented yet. >>>>>>.
+
+
+
+=back
+
+=head1 AUTHORS
+
+Matt Sergeant,
+Christian Glahn,
+Petr Pajas
+
+
+=head1 VERSION
+
+2.0211
+
+=head1 COPYRIGHT
+
+2001-2007, AxKit.com Ltd.
+
+2002-2006, Christian Glahn.
+
+2006-2009, Petr Pajas.
+
+=cut
+
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+

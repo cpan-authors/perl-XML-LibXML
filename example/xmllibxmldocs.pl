@@ -159,61 +159,45 @@ sub handle {
     my $chapter = shift;
 
     my ( $abbr ) = $chapter->findnodes( "titleabbrev" );
-    if ( defined $abbr ) {
-        # create a new file.
-        my $filename = $abbr->string_value();
-        $filename =~ s/^\s*|\s*$//g;
-        my $dir = $self->{directory};
+    return unless defined $abbr;
 
-        $filename =~ s/XML\:\:LibXML//g;
-        $filename =~ s/^-|^\:\://g;   # remove the first colon or minus.
-        $filename =~ s/\:\:/\//g;     # transform remaining colons to paths.
-        # the previous statement should work for existing modules. This could be
-        # dangerous for nested modules, which do not exist at the time of writing
-        # this code.
+    my $name = $abbr->string_value();
+    $name =~ s/^\s*|\s*$//g;
 
-        unless ( length $filename ) {
-            $dir = "";
-            $filename = "LibXML";
-        }
+    # README and LICENSE chapters in docs/libxml.dbk are historical; the
+    # canonical files are now hand-maintained README.md and LICENSE.
+    return if $name eq 'README' || $name eq 'LICENSE';
 
-        if ( $filename ne "README" and $filename ne "LICENSE" ) {
-            $filename .= ".pod";
-        }
-        else {
-            $dir = "";
-        }
+    my $filename = $name;
+    my $dir = $self->{directory};
 
-        $self->{OFILE} = IO::File->new();
-        $self->{OFILE}->open(">".$dir.$filename);
+    $filename =~ s/XML\:\:LibXML//g;
+    $filename =~ s/^-|^\:\://g;   # remove the first colon or minus.
+    $filename =~ s/\:\:/\//g;     # transform remaining colons to paths.
 
-        if ( $abbr->string_value() eq "README"
-             or $abbr->string_value() eq "LICENSE" ) {
-
-            # Text only chapters in the documentation
-            $self->dump_text( $chapter );
-        }
-        else {
-            # print header
-            # print synopsis
-            # process the information itself
-            # dump the info block
-            $self->dump_pod( $chapter );
-            $self->{OFILE}->print( $self->{infoblock} );
-        }
-        # close the file
-        $self->{OFILE}->close();
-
-        # Strip trailing space.
-        my $text = _slurp($dir.$filename);
-        $text =~ s/[ \t]+$//gms;
-
-        open my $out, '>', $dir.$filename
-            or die "Cannot open $dir$filename for writing.";
-        print {$out} $text;
-        close ($out);
-
+    unless ( length $filename ) {
+        $dir = "";
+        $filename = "LibXML";
     }
+
+    $filename .= ".pod";
+
+    $self->{OFILE} = IO::File->new();
+    $self->{OFILE}->open(">".$dir.$filename);
+
+    $self->dump_pod( $chapter );
+    $self->{OFILE}->print( $self->{infoblock} );
+
+    $self->{OFILE}->close();
+
+    # Strip trailing space.
+    my $text = _slurp($dir.$filename);
+    $text =~ s/[ \t]+$//gms;
+
+    open my $out, '>', $dir.$filename
+        or die "Cannot open $dir$filename for writing.";
+    print {$out} $text;
+    close ($out);
 }
 
 sub _slurp
@@ -229,97 +213,6 @@ sub _slurp
     close($in);
 
     return $contents;
-}
-
-# ------------------------------------------------------------------------- #
-# dump_text
-# ------------------------------------------------------------------------- #
-# convert the chapter into a textfile, such as README.
-sub dump_text {
-    my $self = shift;
-    my $chap = shift;
-
-    if ( $chap->nodeName() eq "chapter" ) {
-        my ( $title ) = $chap->getChildrenByTagName( "title" );
-        my $str =  $title->string_value();
-        my $len = length $str;
-        $self->{OFILE}->print( uc($str) . "\n" );
-        $self->{OFILE}->print( "=" x $len );
-        $self->{OFILE}->print( "\n\n" );
-    }
-
-    foreach my $node ( $chap->childNodes() ) {
-        if ( $node->nodeName() eq "para" ) {
-            # we split at the last whitespace before 80 chars
-            my $string = $node->string_value();
-            my $os = "";
-            my @words = split /\s+/, $string;
-            foreach my $word ( @words ) {
-                if ( (length( $os ) + length( $word ) + 1) < 80 ) {
-                    if ( length $os ) { $os .= " "; }
-                    $os .= $word;
-                }
-                else {
-                    $self->{OFILE}->print( $os . "\n" );
-                    $os = $word;
-                }
-            }
-            $self->{OFILE}->print( $os );
-            $self->{OFILE}->print( "\n\n" );
-        }
-        elsif ( $node->nodeName() eq "sect1" ) {
-            my ( $title ) = $node->getChildrenByTagName( "title" );
-            my $str = $title->string_value();
-            my $len = length $str;
-
-            $self->{OFILE}->print( "\n" . uc($str) . "\n" );
-            $self->{OFILE}->print( "=" x $len );
-            $self->{OFILE}->print( "\n\n" );
-            $self->dump_text( $node );
-        }
-        elsif (  $node->nodeName() eq "sect2" ) {
-            my ( $title ) = $node->getChildrenByTagName( "title" );
-            my $str = $title->string_value();
-            my $len = length $str;
-
-            $self->{OFILE}->print( "\n" . $str . "\n" );
-            $self->{OFILE}->print( "=" x $len );
-            $self->{OFILE}->print( "\n\n" );
-            $self->dump_text( $node );
-        }
-        elsif ( $node->nodeName() eq "itemizedlist" ) {
-            my @items = $node->findnodes( "listitem" );
-            my $sp= "  ";
-            foreach my $item ( @items ) {
-                $self->{OFILE}->print( "$sp o " );
-                my $str = $item->string_value();
-                $str =~ s/^\s*|\s*$//g;
-                $self->{OFILE}->print( $str );
-                $self->{OFILE}->print( "\n" );
-            }
-            $self->{OFILE}->print( "\n" );
-        }
-        elsif ( $node->nodeName() eq "orderedlist" ) {
-            my @items = $node->findnodes( "listitem" );
-            my $i = 0;
-            my $sp= "  ";
-            foreach my $item ( @items ) {
-                $i++;
-                $self->{OFILE}->print( "$sp $i " );
-                my $str = $item->string_value();
-                $str =~ s/^\s*|\s*$//g;
-                $self->{OFILE}->print( $str );
-                $self->{OFILE}->print( "\n" );
-            }
-            $self->{OFILE}->print( "\n" );
-        }
-        elsif ( $node->nodeName() eq "programlisting" ) {
-            my $str = $node->string_value();
-            $str =~ s/\n/\n> /g;
-            $self->{OFILE}->print( "> ". $str );
-            $self->{OFILE}->print( "\n\n" );
-        }
-    }
 }
 
 # ------------------------------------------------------------------------- #

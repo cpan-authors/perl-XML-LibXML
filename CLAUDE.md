@@ -11,8 +11,10 @@ perl Makefile.PL          # Configure (detects libxml2 via Alien::Libxml2)
 make                      # Compile XS/C code
 make test                 # Run test suite (~80 test files)
 make install              # Install module + register SAX parsers
-make docs                 # Regenerate POD from docs/libxml.dbk (requires xsltproc)
+make pod_docs             # Regenerate POD from docs/libxml.dbk (uses XML::LibXML; run after editing .dbk)
 ```
+
+POD files (`LibXML.pod`, `lib/XML/LibXML/**/*.pod`) are generated from `docs/libxml.dbk` but **tracked in git** — bison-style. After editing the `.dbk`, run `make pod_docs` and commit the regenerated `.pod` files alongside it. CI fails on drift via the `pod-drift` job.
 
 **Build options:**
 - `XMLPREFIX=/path` — use a custom libxml2 installation
