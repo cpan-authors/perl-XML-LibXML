@@ -102,105 +102,58 @@ domRemoveNsDef(xmlNodePtr tree, xmlNsPtr ns)
         return(0);
 }
 
-/* ns->next must be NULL, or bad things could happen */
-xmlNsPtr
-_domAddNsChain(xmlNsPtr c, xmlNsPtr ns)
+static char
+_domNsIsLocal(xmlNodePtr tree, xmlNsPtr ns)
 {
-        if( c == NULL )
-                return(ns);
-        else
+        xmlNsPtr i = tree->nsDef;
+        while(i != NULL)
         {
-                xmlNsPtr i = c;
-                while(i != NULL && i != ns)
-                        i = i->next;
-                if(i == NULL)
-                {
-                        ns->next = c;
-                        return(ns);
-                }
+                if(i == ns)
+                        return(1);
+                i = i->next;
         }
-        return(c);
+        return(0);
 }
 
-/* We need to be smarter with attributes, because the declaration is on the parent element */
+/* Ensure attribute has a local namespace declaration on its parent element */
 void
-_domReconcileNsAttr(xmlAttrPtr attr, xmlNsPtr * unused)
+_domReconcileNsAttr(xmlAttrPtr attr)
 {
         xmlNodePtr tree = attr->parent;
-	if (tree == NULL)
-		return;
+        if (tree == NULL)
+                return;
         if( attr->ns != NULL )
         {
-		xmlNsPtr ns;
-		if ((attr->ns->prefix != NULL) &&
-		    (xmlStrEqual(attr->ns->prefix, BAD_CAST "xml"))) {
-			/* prefix 'xml' has no visible declaration */
-			ns = xmlSearchNsByHref(tree->doc, tree, XML_XML_NAMESPACE);
-			attr->ns = ns;
-			return;
-		} else {
-			ns = xmlSearchNs( tree->doc, tree->parent, attr->ns->prefix );
-		}
-                if( ns != NULL && ns->href != NULL && attr->ns->href != NULL &&
-                    xmlStrcmp(ns->href,attr->ns->href) == 0 )
-                {
-                        /* Remove the declaration from the element */
-                        if( domRemoveNsDef(tree, attr->ns) )
-                                /* Queue up this namespace for freeing */
-                                *unused = _domAddNsChain(*unused, attr->ns);
-
-                        /* Replace the namespace with the one found */
+                if ((attr->ns->prefix != NULL) &&
+                    (xmlStrEqual(attr->ns->prefix, BAD_CAST "xml"))) {
+                        xmlNsPtr ns = xmlSearchNsByHref(tree->doc, tree, XML_XML_NAMESPACE);
                         attr->ns = ns;
+                        return;
                 }
-                else
+                if( !_domNsIsLocal(tree, attr->ns) )
                 {
-                        /* If the declaration is here, we don't need to do anything */
-                        if( domRemoveNsDef(tree, attr->ns) )
-                                domAddNsDef(tree, attr->ns);
-                        else
-                        {
-                                /* Replace/Add the namespace declaration on the element */
-                                attr->ns = xmlCopyNamespace(attr->ns);
-				if (attr->ns) {
-				  domAddNsDef(tree, attr->ns);
-				}
+                        attr->ns = xmlCopyNamespace(attr->ns);
+                        if (attr->ns) {
+                            domAddNsDef(tree, attr->ns);
                         }
                 }
         }
 }
 
+/* Ensure each node has a local namespace declaration for correct
+ * subtree serialization via toString / xmlNodeDump. */
 void
-_domReconcileNs(xmlNodePtr tree, xmlNsPtr * unused)
+_domReconcileNs(xmlNodePtr tree)
 {
         if( tree->ns != NULL
             && ((tree->type == XML_ELEMENT_NODE)
                 || (tree->type == XML_ATTRIBUTE_NODE)))
         {
-                xmlNsPtr ns = xmlSearchNs( tree->doc, tree->parent, tree->ns->prefix );
-                if( ns != NULL && ns->href != NULL && tree->ns->href != NULL &&
-                    xmlStrcmp(ns->href,tree->ns->href) == 0 )
+                if( !_domNsIsLocal(tree, tree->ns) )
                 {
-                        /* Remove the declaration (if present) */
-                        if( domRemoveNsDef(tree, tree->ns) )
-                                /* Queue the namespace for freeing */
-                                *unused = _domAddNsChain(*unused, tree->ns);
-
-                        /* Replace the namespace with the one found */
-                        tree->ns = ns;
-                }
-                else
-                {
-                        /* If the declaration is here, we don't need to do anything */
-                        if( domRemoveNsDef(tree, tree->ns) ) {
-                              domAddNsDef(tree, tree->ns);
-                        }
-                        else
-                        {
-                                /* Restart the namespace at this point */
-                                tree->ns = xmlCopyNamespace(tree->ns);
-                                if (tree->ns) {
-                                    domAddNsDef(tree, tree->ns);
-                                }
+                        tree->ns = xmlCopyNamespace(tree->ns);
+                        if (tree->ns) {
+                            domAddNsDef(tree, tree->ns);
                         }
                 }
         }
@@ -208,12 +161,10 @@ _domReconcileNs(xmlNodePtr tree, xmlNsPtr * unused)
         if( tree->type == XML_ELEMENT_NODE )
         {
                 xmlElementPtr ele = (xmlElementPtr) tree;
-                /* attributes is set to xmlAttributePtr,
-                   but is an xmlAttrPtr??? */
                 xmlAttrPtr attr = (xmlAttrPtr) ele->attributes;
                 while( attr != NULL )
                 {
-                        _domReconcileNsAttr(attr, unused);
+                        _domReconcileNsAttr(attr);
                         attr = attr->next;
                 }
         }
@@ -222,7 +173,7 @@ _domReconcileNs(xmlNodePtr tree, xmlNsPtr * unused)
           xmlNodePtr child = tree->children;
           while( child != NULL )
           {
-              _domReconcileNs(child, unused);
+              _domReconcileNs(child);
               child = child->next;
             }
         }
@@ -231,10 +182,7 @@ _domReconcileNs(xmlNodePtr tree, xmlNsPtr * unused)
 void
 domReconcileNs(xmlNodePtr tree)
 {
-        xmlNsPtr unused = NULL;
-        _domReconcileNs(tree, &unused);
-        if( unused != NULL )
-                xmlFreeNsList(unused);
+        _domReconcileNs(tree);
 }
 
 /**
