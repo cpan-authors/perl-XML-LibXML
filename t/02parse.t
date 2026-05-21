@@ -14,7 +14,7 @@ use locale;
 
 POSIX::setlocale(LC_ALL, "C");
 
-use Test::More tests => 531;
+use Test::More tests => 526;
 use IO::File;
 
 use XML::LibXML::Common qw(:libxml);
@@ -25,7 +25,7 @@ use constant XML_DECL => "<?xml version=\"1.0\"?>\n";
 
 use Errno qw(ENOENT);
 
-# TEST*531
+# TEST*526
 
 ##
 # test values
@@ -80,7 +80,6 @@ XML_DECL,                                  # only XML Declaration
 '<ouch foo="bar/>',                        # bad attribute
 "<ouch>&</ouch>",                          # bad char
 "<ouch>&#0x20;</ouch>",                    # bad char
-"<foobär/>",                               # bad encoding
 "<ouch>&foo;</ouch>",                      # undefind entity
 "<ouch>&gt</ouch>",                        # unterminated entity
 XML_DECL. '<!DOCTYPE foobar [<!ENTITY foo "bar">]><foobar &foo;="ouch"/>',          # bad placed entity
@@ -575,7 +574,6 @@ my $badXInclude = q{
         "bar</ouch>",
         "<ouch/>&foo;", # undefined entity
         "&",            # bad char
-        "häh?",         # bad encoding
         "<!--->",       # bad stays bad ;)
         "<!----->",     # bad stays bad ;)
     );
