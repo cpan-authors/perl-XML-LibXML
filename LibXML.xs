@@ -4986,13 +4986,13 @@ replaceNode( self,nNode )
              ret = xmlReplaceNode( self, nNode );
         }
         if ( ret ) {
+            if ( nNode->_private != NULL ) {
+                PmmFixOwner(PmmPROXYNODE(nNode), owner);
+            }
             LibXML_reparent_removed_node(ret);
             RETVAL = PmmNodeToSv(ret, PmmOWNERPO(PmmPROXYNODE(ret)));
             if (nNode->type == XML_DTD_NODE) {
                 LibXML_set_int_subset(nNode->doc, nNode);
-            }
-            if ( nNode->_private != NULL ) {
-                PmmFixOwner(PmmPROXYNODE(nNode), owner);
             }
         }
         else {

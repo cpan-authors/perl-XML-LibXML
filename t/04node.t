@@ -11,7 +11,7 @@
 # since all tests are run on a preparsed
 
 # Should be 166.
-use Test::More tests => 201;
+use Test::More tests => 203;
 
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
@@ -468,6 +468,38 @@ my $doc    = $parser->parse_string( $xmlstring );
     ok($cn[0]->isSameNode($e3), ' TODO : Add test name');
     # TEST
     ok($cn[1]->isSameNode($e2), ' TODO : Add test name');
+}
+
+# 5b.  replaceNode with standalone new node (GH #62)
+#      When $new was created via Element->new (no document), and the old
+#      node's parent proxy had no other Perl references, replaceNode would
+#      use-after-free the parent proxy.
+{
+    my $dom;
+    my $foo;
+    my $setup = sub {
+        $dom = XML::LibXML::Document->new;
+        my $root = $dom->createElement('root');
+        $dom->setDocumentElement($root);
+        $foo = XML::LibXML::Element->new('foo');
+        $root->appendChild($foo);
+    };
+    $setup->();
+
+    my $bar = XML::LibXML::Element->new('bar');
+    $foo->replaceNode($bar);
+    undef $bar;
+    undef $foo;
+    undef $dom;
+    # TEST
+    pass('replaceNode with standalone node does not double-free (GH #62)');
+
+    $setup->();
+    my $baz = XML::LibXML::Element->new('baz');
+    $foo->replaceNode($baz);
+    my @cn = $dom->documentElement->childNodes;
+    # TEST
+    is(scalar(@cn), 1, 'replaceNode correctly inserts standalone node');
 }
 
 # 6.   implicit attribute manipulation
