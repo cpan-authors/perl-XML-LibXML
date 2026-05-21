@@ -4,9 +4,6 @@
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 
-void
-perlDocumentFunction( xmlXPathParserContextPtr ctxt, int nargs );
-
 xmlNodeSetPtr
 domXPathSelect( xmlNodePtr refNode, xmlChar * xpathstring );
 

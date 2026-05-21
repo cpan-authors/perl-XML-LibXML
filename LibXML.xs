@@ -7741,10 +7741,6 @@ new( CLASS, ... )
         XPathContextDATA(ctxt)->varLookup = NULL;
         XPathContextDATA(ctxt)->varData = NULL;
 
-        xmlXPathRegisterFunc(ctxt,
-                             (const xmlChar *) "document",
-                             perlDocumentFunction);
-
         RETVAL = NEWSV(0,0),
         RETVAL = sv_setref_pv( RETVAL,
                                CLASS,

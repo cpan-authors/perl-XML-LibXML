@@ -101,11 +101,10 @@ my @none = $root->findnodes('//b:foo');
 
 is(@none, 0, ' TODO : Add test name');
 
-my @doc = $root->findnodes('document("example/test.xml")');
+eval { $root->findnodes('document("example/test.xml")'); };
 # TEST
 
-ok(@doc, ' TODO : Add test name');
-# warn($doc[0]->toString);
+ok($@, 'document() XPath function is not registered (security: GH #145)');
 
 # this query should result an empty array!
 my @nodes = $root->findnodes( "/humpty/dumpty" );
