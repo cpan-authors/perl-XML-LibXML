@@ -146,7 +146,10 @@ $CloseCB = undef;
 #-------------------------------------------------------------------------#
 # bootstrapping                                                           #
 #-------------------------------------------------------------------------#
-XSLoader::load( 'XML::LibXML', $VERSION );
+eval { XSLoader::load( 'XML::LibXML', $VERSION ); 1 }
+    or die "Failed to load XML::LibXML $VERSION XS library:\n"
+         . "  $@"
+         . "Verify that libxml2 is installed: xml2-config --version\n";
 undef &AUTOLOAD;
 
 *encodeToUTF8 = \&XML::LibXML::Common::encodeToUTF8;
