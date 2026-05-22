@@ -158,6 +158,39 @@ SV *EXTERNAL_ENTITY_LOADER_FUNC = (SV *)NULL;
 
 SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
 
+SV *LibXML_pending_exception = NULL;
+
+void
+LibXML_defer_exception(void)
+{
+    dTHX;
+    if (LibXML_pending_exception == NULL) {
+        LibXML_pending_exception = newSVsv(ERRSV);
+    }
+}
+
+void
+LibXML_defer_error(const char *msg)
+{
+    dTHX;
+    if (LibXML_pending_exception == NULL) {
+        LibXML_pending_exception = newSVpv(msg, 0);
+    }
+}
+
+void
+LibXML_rethrow_deferred(void)
+{
+    dTHX;
+    if (LibXML_pending_exception != NULL) {
+        SV *err = LibXML_pending_exception;
+        LibXML_pending_exception = NULL;
+        sv_setsv(ERRSV, err);
+        SvREFCNT_dec(err);
+        croak_obj;
+    }
+}
+
 /* ****************************************************************
  * Error handler
  * **************************************************************** */
@@ -174,7 +207,10 @@ SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
      xmlSetStructuredErrorFunc((void *)saved_error,			        \
 			    (xmlStructuredErrorFunc)LibXML_struct_error_handler)
 
-#define REPORT_ERROR(recover) LibXML_report_error_ctx(saved_error, recover)
+#define REPORT_ERROR(recover) do { \
+    LibXML_rethrow_deferred(); \
+    LibXML_report_error_ctx(saved_error, recover); \
+} while(0)
 
 #define CLEANUP_ERROR_HANDLER  xmlSetGenericErrorFunc(NULL,NULL); \
                                xmlSetStructuredErrorFunc(NULL,NULL)
@@ -192,7 +228,10 @@ SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
     xmlSetGenericErrorFunc((void *) saved_error,                          \
                            (xmlGenericErrorFunc) LibXML_error_handler_ctx)
 
-#define REPORT_ERROR(recover) LibXML_report_error_ctx(saved_error, recover)
+#define REPORT_ERROR(recover) do { \
+    LibXML_rethrow_deferred(); \
+    LibXML_report_error_ctx(saved_error, recover); \
+} while(0)
 
 #define CLEANUP_ERROR_HANDLER xmlSetGenericErrorFunc(NULL,NULL);
 
@@ -230,7 +269,8 @@ LibXML_struct_error_callback(SV * saved_error, SV * libErr )
 
     if ( SvTRUE(ERRSV) ) {
       (void) POPs;
-      croak_obj;
+      warn("XML::LibXML: error in structured error callback: %s",
+           SvPV_nolen(ERRSV));
     } else {
       sv_setsv(saved_error, POPs);
     }
@@ -277,14 +317,14 @@ LibXML_error_handler_ctx(void * ctxt, const char * msg, ...)
 	va_list args;
 	SV * saved_error = (SV *) ctxt;
 
-	/* If saved_error is null we croak with the error */
 	if( NULL == saved_error ) {
 		SV * sv = sv_2mortal(newSV(0));
 		va_start(args, msg);
-                /* vfprintf(stderr, msg, args); */
    		sv_vsetpvfn(sv, msg, strlen(msg), &args, NULL, 0, NULL);
    		va_end(args);
-		croak("%s", SvPV_nolen(sv));
+		warn("XML::LibXML: error handler called without context: %s",
+		     SvPV_nolen(sv));
+		return;
 	/* Otherwise, save the error */
 	} else {
 		va_start(args, msg);
@@ -300,13 +340,14 @@ LibXML_validity_error_ctx(void * ctxt, const char *msg, ...)
 	va_list args;
 	SV * saved_error = (SV *) ctxt;
 
-	/* If saved_error is null we croak with the error */
 	if( NULL == saved_error ) {
 		SV * sv = sv_2mortal(newSV(0));
 		va_start(args, msg);
    		sv_vsetpvfn(sv, msg, strlen(msg), &args, NULL, 0, NULL);
    		va_end(args);
-		croak("%s", SvPV_nolen(sv));
+		warn("XML::LibXML: validity error handler called without context: %s",
+		     SvPV_nolen(sv));
+		return;
 	/* Otherwise, save the error */
 	} else {
 		va_start(args, msg);
@@ -322,13 +363,14 @@ LibXML_validity_warning_ctx(void * ctxt, const char *msg, ...)
 	SV * saved_error = (SV *) ctxt;
 	STRLEN len;
 
-	/* If saved_error is null we croak with the error */
 	if( NULL == saved_error ) {
 		SV * sv = sv_2mortal(newSV(0));
 		va_start(args, msg);
    		sv_vsetpvfn(sv, msg, strlen(msg), &args, NULL, 0, NULL);
    		va_end(args);
-		croak("LibXML_validity_warning_ctx internal error: context was null (%s)", SvPV_nolen(sv));
+		warn("XML::LibXML: validity warning handler called without context: %s",
+		     SvPV_nolen(sv));
+		return;
 	/* Otherwise, give the warning */
 	} else {
 		va_start(args, msg);
@@ -442,7 +484,8 @@ LibXML_reader_error_handler(void * ctxt,
     if (error_sv) {
       sv_catpvf(error_sv, "%s  ", SvPV_nolen(error));
     } else {
-      croak("%s",SvPV_nolen(error));
+      warn("XML::LibXML: reader error without context: %s",
+           SvPV_nolen(error));
     }
   }
 }
@@ -602,12 +645,21 @@ LibXML_input_match(char const * filename)
         SPAGAIN;
 
         if (count != 1) {
-            croak("match callback must return a single value");
+            LibXML_defer_error(
+                "match callback must return a single value");
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return 0;
         }
 
         if (SvTRUE(ERRSV)) {
             (void) POPs;
-            croak_obj;
+            LibXML_defer_exception();
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return 0;
         }
 
         res = POPs;
@@ -646,12 +698,21 @@ LibXML_input_open(char const * filename)
     SPAGAIN;
 
     if (count != 1) {
-        croak("open callback must return a single value");
+        LibXML_defer_error(
+            "open callback must return a single value");
+        PUTBACK;
+        FREETMPS;
+        LEAVE;
+        return NULL;
     }
 
     if (SvTRUE(ERRSV)) {
         (void) POPs;
-        croak_obj;
+        LibXML_defer_exception();
+        PUTBACK;
+        FREETMPS;
+        LEAVE;
+        return NULL;
     }
 
     results = POPs;
@@ -697,12 +758,21 @@ LibXML_input_read(void * context, char * buffer, int len)
         SPAGAIN;
 
         if (count != 1) {
-            croak("read callback must return a single value");
+            LibXML_defer_error(
+                "read callback must return a single value");
+	    PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return -1;
         }
 
         if (SvTRUE(ERRSV)) {
             (void) POPs;
-            croak_obj;
+            LibXML_defer_exception();
+	    PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return -1;
         }
 
         /*
@@ -756,7 +826,7 @@ LibXML_input_close(void * context)
         SvREFCNT_dec(ctxt);
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
         }
 
         FREETMPS;
@@ -788,7 +858,10 @@ LibXML_output_write_handler(void * ioref, char * buffer, int len)
         call_pv("XML::LibXML::__write", G_SCALAR | G_EVAL | G_DISCARD );
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            FREETMPS;
+            LEAVE;
+            return -1;
         }
 
         FREETMPS;
@@ -865,12 +938,23 @@ LibXML_load_external_entity(
         SPAGAIN;
 
         if (count == 0) {
-            croak("external entity handler did not return a value");
+            LibXML_defer_error(
+                "external entity handler did not return a value");
+            xmlStopParser(ctxt);
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return NULL;
         }
 
         if (SvTRUE(ERRSV)) {
             (void) POPs;
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return NULL;
         }
 
         results = POPs;
@@ -878,15 +962,31 @@ LibXML_load_external_entity(
         results_pv = SvPV(results, results_len);
         int_results_len = results_len;
         if ((results_len > INT_MAX) || (int_results_len != results_len)) {
-            croak("a buffer would be too big\n");
+            LibXML_defer_error("a buffer would be too big");
+            xmlStopParser(ctxt);
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return NULL;
         }
         input_buf = xmlAllocParserInputBuffer(XML_CHAR_ENCODING_NONE);
         if (!input_buf) {
-            croak("cannot create a buffer!\n");
+            LibXML_defer_error("cannot create a buffer");
+            xmlStopParser(ctxt);
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return NULL;
         }
         if (-1 == xmlParserInputBufferPush(input_buf, int_results_len, results_pv)) {
             xmlFreeParserInputBuffer(input_buf);
-            croak("cannot push an external entity into a buffer!\n");
+            LibXML_defer_error(
+                "cannot push an external entity into a buffer");
+            xmlStopParser(ctxt);
+            PUTBACK;
+            FREETMPS;
+            LEAVE;
+            return NULL;
         }
 
         PUTBACK;
