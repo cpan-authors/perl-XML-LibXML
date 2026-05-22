@@ -3324,7 +3324,7 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
                     node will be removed from memory after this action. Because perl is not aware of this action, the perl instance is still available.
                     XML::LibXML will catch the loss of a node and refuse to run any function called on that node.</para>
 
-                    <programlisting> my $t1 = $doc-&gt;createTextNode( "foo" );
+                    <programlisting>  my $t1 = $doc-&gt;createTextNode( "foo" );
  my $t2 = $doc-&gt;createTextNode( "bar" );
  $t1-&gt;addChild( $t2 );       # is OK
  my $val = $t2-&gt;nodeValue(); # will fail, script dies</programlisting>

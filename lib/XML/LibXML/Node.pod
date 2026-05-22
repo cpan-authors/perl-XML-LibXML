@@ -223,7 +223,7 @@ function called on that node.
 
 
 
-  my $t1 = $doc->createTextNode( "foo" );
+   my $t1 = $doc->createTextNode( "foo" );
    my $t2 = $doc->createTextNode( "bar" );
    $t1->addChild( $t2 );       # is OK
    my $val = $t2->nodeValue(); # will fail, script dies
