@@ -5112,43 +5112,33 @@ addSibling( self, nNode )
     PREINIT:
         xmlNodePtr ret = NULL;
         ProxyNodePtr owner = NULL;
+        ProxyNodePtr proxy = NULL;
     CODE:
         if ( nNode->type == XML_DOCUMENT_FRAG_NODE ) {
             croak("Adding document fragments with addSibling not yet supported!");
             XSRETURN_UNDEF;
         }
         owner = PmmOWNERPO(PmmPROXYNODE(self));
+        proxy = PmmPROXYNODE(nNode);
 
-        if (self->type == XML_TEXT_NODE && nNode->type == XML_TEXT_NODE
-            && self->name == nNode->name) {
-            /* As a result of text merging, the added node may be freed. */
-            xmlNodePtr copy = xmlCopyNode(nNode, 0);
-            ret = xmlAddSibling(self, copy);
+        ret = xmlAddSibling( self, nNode );
 
-            if (ret) {
-                RETVAL = PmmNodeToSv(ret, owner);
-                /* Unlink original node. */
-                xmlUnlinkNode(nNode);
-                LibXML_reparent_removed_node(nNode);
-            }
-            else {
-                xmlFreeNode(copy);
-                XSRETURN_UNDEF;
-            }
+        if ( ret == NULL ) {
+            XSRETURN_UNDEF;
         }
-        else {
-            ret = xmlAddSibling( self, nNode );
 
-            if ( ret ) {
-                RETVAL = PmmNodeToSv(ret, owner);
-                if (nNode->type == XML_DTD_NODE) {
-                    LibXML_set_int_subset(self->doc, nNode);
-                }
-                PmmFixOwner(SvPROXYNODE(RETVAL), owner);
+        if ( ret != nNode ) {
+            xs_warn( "node was lost during operation\n" );
+            PmmNODE(proxy) = NULL;
+        }
+
+        RETVAL = PmmNodeToSv(ret, owner);
+
+        if ( ret == nNode ) {
+            if (nNode->type == XML_DTD_NODE) {
+                LibXML_set_int_subset(self->doc, nNode);
             }
-            else {
-                XSRETURN_UNDEF;
-            }
+            PmmFixOwner(SvPROXYNODE(RETVAL), owner);
         }
     OUTPUT:
         RETVAL
