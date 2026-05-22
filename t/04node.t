@@ -11,7 +11,7 @@
 # since all tests are run on a preparsed
 
 # Should be 166.
-use Test::More tests => 195;
+use Test::More tests => 198;
 
 use XML::LibXML;
 use XML::LibXML::Common qw(:libxml);
@@ -721,5 +721,29 @@ EOF
     my $ret = $orig->addSibling(XML::LibXML::Text->new('Free'));
     # TEST
     is( $ret->textContent, 'Double Free', 'merge text nodes with addSibling' );
+}
+
+{
+    # GH #246 / RT #125129
+    # addSibling double-free when text merging happens via parent's last child.
+    # xmlAddSibling navigates to parent->last before merging; the old code only
+    # checked self->type, missing merges triggered by the last sibling.
+
+    my $div = XML::LibXML::Element->new("div");
+    $div->addChild(XML::LibXML::Element->new("font"));
+    my $font = XML::LibXML::Element->new("font");
+    $div->addChild($font);
+    my $text1 = XML::LibXML::Text->new("Ok");
+    my $text2 = XML::LibXML::Text->new("not ok");
+    $font->addSibling($text1);
+    $font->addSibling($text2);
+
+    my @cn = $div->childNodes;
+    # TEST
+    is( scalar(@cn), 3, 'addSibling text merge via last sibling: child count' );
+    # TEST
+    is( $cn[2]->nodeType, XML_TEXT_NODE, 'addSibling text merge via last sibling: node type' );
+    # TEST
+    is( $cn[2]->textContent, 'Oknot ok', 'addSibling text merge via last sibling: merged content' );
 }
 
