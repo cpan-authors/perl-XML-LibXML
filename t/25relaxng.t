@@ -16,7 +16,7 @@ BEGIN {
     use XML::LibXML;
 
     if ( XML::LibXML::LIBXML_VERSION >= 20510 ) {
-        plan tests => 17;
+        plan tests => 21;
     }
     else {
         plan skip_all => 'Skip No RNG Support compiled';
@@ -33,6 +33,7 @@ my $validfile    = "test/relaxng/demo.xml";
 my $invalidfile  = "test/relaxng/invaliddemo.xml";
 my $demo4        = "test/relaxng/demo4.rng";
 my $netfile      = "test/relaxng/net.rng";
+my $nsfile       = "test/relaxng/ns.rng";
 
 print "# 1 parse schema from a file\n";
 {
@@ -157,5 +158,56 @@ EOF
     ok( !defined $rng, 'RNG from buffer with external import and no_network => 1 is not loaded.' );
 }
 
+
+print "# 7 re-validate a modified namespaced document (GH #195 / RT #63655)\n";
+{
+    my $rngschema = XML::LibXML::RelaxNG->new(location => $nsfile);
+    my $doc = $xmlparser->parse_string(<<'EOD');
+<?xml version="1.0" encoding="utf-8"?>
+<datastore xmlns="http://xmlns.example.com/2007/test/datastore">
+  <data>
+    <active>
+      <element id="uuidtest1">
+        <title>Ze element</title>
+        <payload>Ze element payload</payload>
+      </element>
+    </active>
+  </data>
+</datastore>
+EOD
+    eval { $rngschema->validate($doc) };
+    # TEST
+    ok(!$@, 'initial namespaced document validates');
+
+    my $node = $doc->createElement("element");
+    my $title = $doc->createElement("title");
+    $title->appendText("New title");
+    $node->appendChild($title);
+    my $payload = $doc->createElement("payload");
+    $payload->appendText("New payload");
+    $node->appendChild($payload);
+    $node->setAttribute('id', 'uuidTest2');
+
+    my ($active) = $doc->getElementsByTagNameNS(
+        "http://xmlns.example.com/2007/test/datastore", "active");
+    $active->appendChild($node);
+
+    my $reparsed_doc = $xmlparser->parse_string($doc->toString);
+    eval { $rngschema->validate($reparsed_doc) };
+    # TEST
+    ok(!$@, 'reparsed modified namespaced document validates');
+
+    eval { $rngschema->validate($doc) };
+    # TEST
+    ok(!$@, 're-validation of modified namespaced document succeeds');
+
+    my $node2 = $doc->createElement("element");
+    $node2->setAttribute('did', 'test-did');
+    $active->appendChild($node2);
+
+    eval { $rngschema->validate($doc) };
+    # TEST
+    ok(!$@, 're-validation after second append succeeds');
+}
 
 } # Version >= 20510 test
