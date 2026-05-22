@@ -361,6 +361,42 @@ jobs:
       - name: Run Tests
         run: make test
 
+  libxml2:
+    name: "libxml2 ${{ matrix.libxml2-version }}"
+    runs-on: ubuntu-latest
+
+    env:
+      PERL_USE_UNSAFE_INC: 0
+      AUTOMATED_TESTING: 1
+      LIBXML2_VERSION: ${{ matrix.libxml2-version }}
+      LIBXML2_INSTALL_DIR: ${{ github.workspace }}/install-${{ matrix.libxml2-version }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Version 2.9.1 from 2013 is used in RHEL7. It probably doesn't
+        # make much sense to test and support older versions.
+        libxml2-version: [ 2.9.1, 2.9.14, 2.10.4, 2.11.9, 2.12.10, 2.13.9, 2.14.6, 2.15.3 ]
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: install libxml2
+        run: |
+          curl -L https://download.gnome.org/sources/libxml2/${LIBXML2_VERSION%.*}/libxml2-$LIBXML2_VERSION.tar.xz |tar xJf -
+          cd libxml2-$LIBXML2_VERSION
+          mkdir build
+          cd build
+          ../configure --without-python --prefix=$LIBXML2_INSTALL_DIR
+          make -j$(nproc)
+          make install
+      - name: Install deps
+        uses: perl-actions/install-with-cpanm@v1
+        with:
+          cpanfile: ".github/cpanfile"
+      - run: perl Makefile.PL "INC=-I$LIBXML2_INSTALL_DIR/include/libxml2" "LIBS=-L$LIBXML2_INSTALL_DIR/lib -lxml2"
+      - run: make -j$(nproc)
+      - run: make test
+
   pod-drift:
     name: "POD drift check"
     needs: [author-testing, coverage, asan, downstream, linux, BSDs, fedora, macOS, windows]
