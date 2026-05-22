@@ -15,7 +15,7 @@ use Test::More;
 use XML::LibXML;
 
 if ( XML::LibXML::LIBXML_VERSION >= 20510 ) {
-    plan tests => 12;
+    plan tests => 16;
 }
 else {
     plan skip_all => 'No Schema Support compiled.';
@@ -132,4 +132,50 @@ EOF
     like( $@, qr{Attempt to load network entity}, 'Schema from buffer with external import and no_network => 1 throws an exception.' );
     # TEST
     ok( !defined $schema, 'Schema from buffer with external import and no_network => 1 is not loaded.' );
+}
+
+# 6 validate a DocumentFragment (GH #242 / RT #122293)
+{
+    my $schema = XML::LibXML::Schema->new(string => <<'EOF');
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="a" type="xs:string"/>
+</xs:schema>
+EOF
+
+    my $frag = XML::LibXML::DocumentFragment->new;
+    my $el = XML::LibXML::Element->new("a");
+    $el->appendText("hi");
+    $frag->appendChild($el);
+
+    my $result = 1;
+    eval { $result = $schema->validate($frag); };
+    # TEST
+    is( $@, '', 'validate() with DocumentFragment doesn\'t throw' );
+    # TEST
+    is( $result, 0, 'validate() with DocumentFragment returns 0' );
+
+    my $bad_frag = XML::LibXML::DocumentFragment->new;
+    my $bad_el = XML::LibXML::Element->new("a");
+    $bad_el->setAttribute("bogus", "attr");
+    $bad_el->appendText("hi");
+    $bad_frag->appendChild($bad_el);
+
+    eval { $schema->validate($bad_frag); };
+    # TEST
+    ok( $@, 'validate() with invalid DocumentFragment throws' );
+}
+
+# 7 validate rejects unsupported node types with clear message
+{
+    my $schema = XML::LibXML::Schema->new(string => <<'EOF');
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="a" type="xs:string"/>
+</xs:schema>
+EOF
+
+    my $text = XML::LibXML::Text->new("hello");
+    eval { $schema->validate($text); };
+    # TEST
+    like( $@, qr{validate expects a Document, DocumentFragment, or Element node},
+          'validate() with text node gives descriptive error' );
 }
