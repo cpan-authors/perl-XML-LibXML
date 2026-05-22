@@ -863,8 +863,8 @@ PmmContextREFCNT_dec( ProxyNodePtr node )
                 PmmNODE( node )   = NULL;
                 xmlFreeParserCtxt(libnode);
             }
+            xmlFree( node );
         }
-        xmlFree( node );
     }
     return retval;
 }
