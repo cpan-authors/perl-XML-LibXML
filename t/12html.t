@@ -9,7 +9,7 @@ use XML::LibXML;
 use IO::File;
 
 # TEST
-ok(1, ' TODO : Add test name');
+ok(1, 'module loaded');
 
 my $html = "example/test.html";
 
@@ -17,7 +17,7 @@ my $parser = XML::LibXML->new();
 {
     my $doc = $parser->parse_html_file($html);
     # TEST
-    ok($doc, ' TODO : Add test name');
+    ok($doc, 'parse_html_file returns a document');
 }
 
 my $fh;
@@ -35,13 +35,13 @@ seek($fh, 0, 0);
 
 # TEST
 
-ok($string, ' TODO : Add test name');
+ok($string, 'HTML test file content is non-empty');
 
 my $doc = $parser->parse_html_string($string);
 
 # TEST
 
-ok($doc, ' TODO : Add test name');
+ok($doc, 'parse_html_string returns a document');
 
 undef $doc;
 
@@ -49,7 +49,7 @@ $doc = $parser->parse_html_fh($fh);
 
 # TEST
 
-ok($doc, ' TODO : Add test name');
+ok($doc, 'parse_html_fh returns a document');
 
 $fh->close();
 
@@ -77,7 +77,7 @@ eval {
 
 # ok( not $@ );
 # TEST
-ok( $htmldoc, ' TODO : Add test name' );
+ok( $htmldoc, 'parse_html_string handles unescaped ampersands in URLs' );
 
 # parse_html_string with encoding
 # encodings
@@ -102,12 +102,12 @@ EOHTML
 
     # TEST
 
-    ok( Encode::is_utf8($strhref), ' TODO : Add test name' );
+    ok( Encode::is_utf8($strhref), 'heredoc with utf8 chars has UTF-8 flag' );
     $htmldoc = $parser->parse_html_string( $strhref );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse utf8 string without encoding option' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'utf8 text roundtrips without encoding option');
 
     $htmldoc = $parser->parse_html_string( $strhref,
         {
@@ -115,9 +115,9 @@ EOHTML
         }
     );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse utf8 string with explicit UTF-8 encoding' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'utf8 text roundtrips with explicit UTF-8 encoding');
 
 
     my $iso_str = Encode::encode('iso-8859-2', $strhref);
@@ -127,9 +127,9 @@ EOHTML
         }
     );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse iso-8859-2 string with encoding option' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'iso-8859-2 text decoded to utf8 correctly');
 
     # w/ 'meta' charset
     $strhref = <<EOHTML;
@@ -146,26 +146,26 @@ EOHTML
 
     $htmldoc = $parser->parse_html_string( $strhref, { encoding => 'UTF-8' });
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse utf8 string with meta charset overridden by UTF-8' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'utf8 text correct when meta charset overridden');
 
     $iso_str = Encode::encode('iso-8859-2', $strhref);
     $htmldoc = $parser->parse_html_string( $iso_str );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse iso-8859-2 string with meta charset auto-detected' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'iso-8859-2 text decoded via meta charset');
 
     $htmldoc = $parser->parse_html_string( $iso_str, { encoding => 'iso-8859-2',
             URI => 'foo'
         } );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse iso-8859-2 string with encoding and URI options' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'iso-8859-2 text correct with encoding and URI options');
     # TEST
-    is($htmldoc->URI, 'foo', ' TODO : Add test name');
+    is($htmldoc->URI, 'foo', 'URI option sets document URI on string parse');
 }
 
 # parse example/enc_latin2.html
@@ -178,28 +178,28 @@ EOHTML
 
     $htmldoc = $parser->parse_html_file( $test_file );
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_file with meta charset (latin2)' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 file text decoded via meta charset');
 
     $htmldoc = $parser->parse_html_file( $test_file, { encoding => 'iso-8859-2',
             URI => 'foo'
         });
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_file with explicit encoding and URI' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 file text correct with explicit encoding');
     # TEST
-    is($htmldoc->URI, 'foo', ' TODO : Add test name');
+    is($htmldoc->URI, 'foo', 'URI option sets document URI on file parse');
 
     open $fh, '<', $test_file
         or die "Cannot open '$test_file' for reading - $!";
     $htmldoc = $parser->parse_html_fh( $fh );
     close $fh;
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_fh with meta charset (latin2)' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 fh text decoded via meta charset');
 
     open $fh, '<', $test_file
         or die "Cannot open '$test_file' for reading - $!";
@@ -208,11 +208,11 @@ EOHTML
         });
     close $fh;
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_fh with explicit encoding and URI' );
     # TEST
-    is($htmldoc->URI, 'foo', ' TODO : Add test name');
+    is($htmldoc->URI, 'foo', 'URI option sets document URI on fh parse');
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 fh text correct with explicit encoding');
 
     SKIP:
     {
@@ -236,9 +236,9 @@ EOHTML
         $htmldoc = $parser->parse_html_fh( $fh, { encoding => 'UTF-8' });
         close $fh;
         # TEST
-        ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+        ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_fh with encoding PerlIO layer (meta charset)' );
         # TEST
-        is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+        is($htmldoc->findvalue('//p/text()'), $utf_str, 'text correct via encoding PerlIO layer (meta charset)');
     }
 }
 
@@ -252,18 +252,18 @@ EOHTML
 
     $htmldoc = $parser->parse_html_file( $test_file, { encoding => 'iso-8859-2' });
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_file without meta charset, explicit encoding' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 file text correct without meta charset');
 
     open $fh, '<', $test_file
         or die "Cannot open '$test_file' for reading - $!";
     $htmldoc = $parser->parse_html_fh( $fh, { encoding => 'iso-8859-2' });
     close $fh;
     # TEST
-    ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+    ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_fh without meta charset, explicit encoding' );
     # TEST
-    is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+    is($htmldoc->findvalue('//p/text()'), $utf_str, 'latin2 fh text correct without meta charset');
 
     SKIP:
     {
@@ -283,9 +283,9 @@ EOHTML
         $htmldoc = $parser->parse_html_fh( $fh, { encoding => 'UTF-8' } );
         close $fh;
         # TEST
-        ok( $htmldoc && $htmldoc->getDocumentElement, ' TODO : Add test name' );
+        ok( $htmldoc && $htmldoc->getDocumentElement, 'parse_html_fh with encoding PerlIO layer (no meta charset)' );
         # TEST
-        is($htmldoc->findvalue('//p/text()'), $utf_str, ' TODO : Add test name');
+        is($htmldoc->findvalue('//p/text()'), $utf_str, 'text correct via encoding PerlIO layer (no meta charset)');
     }
 }
 
