@@ -16,7 +16,7 @@ BEGIN {
     use XML::LibXML;
 
     if ( XML::LibXML::LIBXML_VERSION >= 20510 ) {
-        plan tests => 17;
+        plan tests => 23;
     }
     else {
         plan skip_all => 'Skip No RNG Support compiled';
@@ -157,5 +157,42 @@ EOF
     ok( !defined $rng, 'RNG from buffer with external import and no_network => 1 is not loaded.' );
 }
 
+
+print "# 7 parse schema from a document using 'doc' alias (GH #212)\n";
+{
+    my $doc       = $xmlparser->parse_file( $file );
+    my $rngschema = XML::LibXML::RelaxNG->new( doc => $doc );
+    # TEST
+    ok ( $rngschema, 'RelaxNG accepts doc as alias for DOM' );
+
+    my $valid_doc = $xmlparser->parse_file( $validfile );
+    my $valid = 0;
+    eval { $valid = $rngschema->validate( $valid_doc ); };
+    # TEST
+    is( $valid, 0, 'RelaxNG created with doc validates correctly' );
+
+    my $invalid_doc = $xmlparser->parse_file( $invalidfile );
+    eval { $rngschema->validate( $invalid_doc ); };
+    # TEST
+    ok( $@, 'RelaxNG created with doc rejects invalid document' );
+}
+
+print "# 8 croak on unrecognized parameters (GH #212)\n";
+{
+    eval { XML::LibXML::RelaxNG->new( bogus => 'whatever' ); };
+    # TEST
+    like( $@, qr{expected 'location', 'string', or 'DOM' parameter},
+        'RelaxNG croaks on unrecognized parameter' );
+
+    eval { XML::LibXML::RelaxNG->new(); };
+    # TEST
+    like( $@, qr{expected 'location', 'string', or 'DOM' parameter},
+        'RelaxNG croaks when called with no parameters' );
+
+    eval { XML::LibXML::Schema->new( bogus => 'whatever' ); };
+    # TEST
+    like( $@, qr{expected 'location' or 'string' parameter},
+        'Schema croaks on unrecognized parameter' );
+}
 
 } # Version >= 20510 test
