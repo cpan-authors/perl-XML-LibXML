@@ -280,6 +280,21 @@ See the documentation in L<<<<<< XML::LibXML::Node >>>>>>.
 See the documentation in L<<<<<< XML::LibXML::Node >>>>>>.
 
 
+=item toBytesC14N
+
+Byte-string variant of toStringC14N(). See the documentation in L<<<<<< XML::LibXML::Node >>>>>>.
+
+
+=item toBytesEC14N
+
+Byte-string variant of toStringEC14N(). See the documentation in L<<<<<< XML::LibXML::Node >>>>>>.
+
+
+=item toBytesC14N_v1_1
+
+Byte-string variant of toStringC14N_v1_1(). See the documentation in L<<<<<< XML::LibXML::Node >>>>>>.
+
+
 =item serialize
 
   $str = $doc->serialize($format);

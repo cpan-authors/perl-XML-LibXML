@@ -5,8 +5,8 @@
 # these testcases are for xml canonization interfaces.
 #
 
-# should be 23.
-use Test::More tests => 23;
+# should be 34.
+use Test::More tests => 34;
 use strict;
 use warnings;
 
@@ -222,4 +222,68 @@ is( $doc->toStringEC14N( 0, $xpath, $xpc, [qw(soap)] ), $expect, ' TODO : Add te
 
 is( $doc->toStringEC14N( 0, $xpath2, $xpc, [qw(soap)] ), $expect, ' TODO : Add test name' );
 
+}
+
+# toBytesC14N tests (GH #214)
+{
+    my $doc = $parser->parse_string( "<a><b/> <c/> <!-- d --> </a>" );
+
+    my $bytes = $doc->toBytesC14N();
+    # TEST
+    is( $bytes, "<a><b></b> <c></c>  </a>", 'toBytesC14N produces correct output' );
+    # TEST
+    ok( !utf8::is_utf8($bytes), 'toBytesC14N result has no UTF-8 flag' );
+
+    my $string = $doc->toStringC14N();
+    # TEST
+    ok( utf8::is_utf8($string), 'toStringC14N result has UTF-8 flag (control)' );
+}
+
+{
+    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?>\n<root>\x{c3}\x{89}ric</root>};
+    my $doc = $parser->parse_string( $xml );
+
+    my $string = $doc->toStringC14N();
+    my $bytes = $doc->toBytesC14N();
+
+    # TEST
+    ok( utf8::is_utf8($string), 'toStringC14N on non-ASCII has UTF-8 flag' );
+    # TEST
+    ok( !utf8::is_utf8($bytes), 'toBytesC14N on non-ASCII has no UTF-8 flag' );
+
+    utf8::encode(my $expected = $string);
+    # TEST
+    is( $bytes, $expected, 'toBytesC14N bytes match encoded toStringC14N' );
+}
+
+# toBytesEC14N tests
+if (20620 > XML::LibXML::LIBXML_VERSION) {
+    skip("skipping toBytesEC14N tests for libxml2 < 2.6.17") for 30..32;
+} else {
+    my $doc = $parser->parse_string(
+        '<n0:local xmlns:n0="http://something.org"><n1:elem xmlns:n1="http://example.net"/></n0:local>'
+    );
+    my $bytes = $doc->toBytesEC14N(0);
+    my $string = $doc->toStringEC14N(0);
+    # TEST
+    ok( !utf8::is_utf8($bytes), 'toBytesEC14N result has no UTF-8 flag' );
+    # TEST
+    ok( utf8::is_utf8($string), 'toStringEC14N result has UTF-8 flag (control)' );
+
+    utf8::encode(my $expected = $string);
+    # TEST
+    is( $bytes, $expected, 'toBytesEC14N bytes match encoded toStringEC14N' );
+}
+
+# toBytesC14N_v1_1 test
+{
+    my $doc = $parser->parse_string( "<a><b/></a>" );
+    my $bytes = $doc->toBytesC14N_v1_1();
+    # TEST
+    ok( !utf8::is_utf8($bytes), 'toBytesC14N_v1_1 result has no UTF-8 flag' );
+
+    my $string = $doc->toStringC14N_v1_1();
+    utf8::encode(my $expected = $string);
+    # TEST
+    is( $bytes, $expected, 'toBytesC14N_v1_1 bytes match encoded toStringC14N_v1_1' );
 }

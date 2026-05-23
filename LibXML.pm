@@ -1405,6 +1405,27 @@ sub toStringEC14N {
     );
 }
 
+sub toBytesC14N {
+    my $self = shift;
+    my $string = $self->toStringC14N(@_);
+    utf8::encode($string);
+    return $string;
+}
+
+sub toBytesEC14N {
+    my $self = shift;
+    my $string = $self->toStringEC14N(@_);
+    utf8::encode($string);
+    return $string;
+}
+
+sub toBytesC14N_v1_1 {
+    my $self = shift;
+    my $string = $self->toStringC14N_v1_1(@_);
+    utf8::encode($string);
+    return $string;
+}
+
 *serialize_c14n = \&toStringC14N;
 *serialize_exc_c14n = \&toStringEC14N;
 
