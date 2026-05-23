@@ -2362,6 +2362,7 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         int recover = 0;
         xmlChar * chunk;
         xmlNodePtr rv = NULL;
+        xmlDocPtr doc = NULL;
         PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(enc)) {
@@ -2380,31 +2381,41 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         if ( chunk != NULL ) {
             recover = LibXML_get_recover(real_obj);
 
-            rv = domReadWellBalancedString( NULL, chunk, recover );
+            /* GH #254: pass a real document to xmlParseBalancedChunkMemory
+               to prevent namespace memory leaks. Without a doc, libxml2
+               creates and destroys a temp doc internally, leaking namespace
+               structures attached to the parsed nodes. */
+            doc = xmlNewDoc(BAD_CAST "1.0");
+            if (doc == NULL) {
+                xmlFree(chunk);
+                LibXML_cleanup_parser();
+                CLEANUP_ERROR_HANDLER;
+                croak("_parse_xml_chunk: failed to create document\n");
+            }
+
+            rv = domReadWellBalancedString( doc, chunk, recover );
 
             if ( rv != NULL ) {
-                xmlNodePtr fragment= NULL;
+                xmlNodePtr fragment = NULL;
                 xmlNodePtr rv_end = NULL;
+                ProxyNodePtr docfrag = NULL;
 
-                /* now we append the nodelist to a document
-                   fragment which is unbound to a Document!!!! */
+                PmmNewNode((xmlNodePtr)doc);
+                docfrag = PmmNewFragment( doc );
+                fragment = PmmNODE( docfrag );
+                RETVAL = PmmNodeToSv(fragment, NULL);
 
-                /* step 1: create the fragment */
-                fragment = xmlNewDocFragment( NULL );
-                RETVAL = LibXML_NodeToSv(real_obj, fragment);
-
-                /* step 2: set the node list to the fragment */
                 fragment->children = rv;
                 rv_end = rv;
                 while ( rv_end->next != NULL ) {
                     rv_end->parent = fragment;
                     rv_end = rv_end->next;
                 }
-                /* the following line is important, otherwise we'll have
-                   occasional segmentation faults
-                 */
                 rv_end->parent = fragment;
                 fragment->last = rv_end;
+            }
+            else {
+                xmlFreeDoc(doc);
             }
 
             /* free the chunk we created */
