@@ -2075,8 +2075,12 @@ sub new {
     elsif ( defined $args{string} ) {
         $self = $class->parse_buffer( $args{string}, XML::LibXML->_parser_options(\%args), $args{recover} );
     }
-    elsif ( defined $args{DOM} ) {
-        $self = $class->parse_document( $args{DOM}, XML::LibXML->_parser_options(\%args), $args{recover} );
+    elsif ( defined( $args{DOM} // $args{doc} ) ) {
+        my $doc = $args{DOM} // $args{doc};
+        $self = $class->parse_document( $doc, XML::LibXML->_parser_options(\%args), $args{recover} );
+    }
+    else {
+        Carp::croak("XML::LibXML::RelaxNG->new: expected 'location', 'string', or 'DOM' parameter");
     }
 
     return $self;
@@ -2098,6 +2102,9 @@ sub new {
     }
     elsif ( defined $args{string} ) {
         $self = $class->parse_buffer( $args{string}, XML::LibXML->_parser_options(\%args), $args{recover} );
+    }
+    else {
+        Carp::croak("XML::LibXML::Schema->new: expected 'location' or 'string' parameter");
     }
 
     return $self;
