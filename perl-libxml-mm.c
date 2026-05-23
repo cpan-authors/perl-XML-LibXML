@@ -932,7 +932,7 @@ PmmFastEncodeString( int charset,
     xmlChar *retval = NULL;
     xmlBufferPtr in = NULL, out = NULL;
 
-    int i;
+    STRLEN i;
     /* first check that the input is not ascii */
     /* since we do not want to recode ascii as, say, UTF-16 */
     if (len == 0)

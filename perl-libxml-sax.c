@@ -112,7 +112,7 @@ _C2Sv( const xmlChar *string, const xmlChar *dummy )
 }
 
 SV*
-_C2Sv_len( const xmlChar *string, int len )
+_C2Sv_len( const xmlChar *string, STRLEN len )
 {
 
     dTHX;
