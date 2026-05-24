@@ -4488,11 +4488,12 @@ $ec14nstring = $node-&gt;toStringEC14N($with_comments, $xpath_expression, $xpath
 
                 <listitem>
                     <funcsynopsis>
-                        <funcsynopsisinfo>$node-&gt;appendTextChild( $childname , $PCDATA );</funcsynopsisinfo>
+                        <funcsynopsisinfo>my $child = $node-&gt;appendTextChild( $childname , $PCDATA );</funcsynopsisinfo>
                     </funcsynopsis>
 
                     <para>Somewhat similar with <function>appendTextNode</function>: It lets you set an Element, that contains only a <function>text node</function>
-                    directly by specifying the name and the text content.</para>
+                    directly by specifying the name and the text content.
+                    Returns the newly created child element node.</para>
                 </listitem>
             </varlistentry>
             <varlistentry>

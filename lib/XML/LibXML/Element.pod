@@ -30,7 +30,7 @@ XML::LibXML::Element - XML::LibXML Class for Element Nodes
   $node->appendWellBalancedChunk( $chunk );
   $node->appendText( $PCDATA );
   $node->appendTextNode( $PCDATA );
-  $node->appendTextChild( $childname , $PCDATA );
+  my $child = $node->appendTextChild( $childname , $PCDATA );
   $node->setNamespace( $nsURI , $nsPrefix, $activate );
   $node->setNamespaceDeclURI( $nsPrefix, $newURI );
   $node->setNamespaceDeclPrefix( $oldPrefix, $newPrefix );
@@ -245,9 +245,10 @@ This wrapper function lets you add a string directly to an element node.
 
 =item appendTextChild
 
-  $node->appendTextChild( $childname , $PCDATA );
+  my $child = $node->appendTextChild( $childname , $PCDATA );
 
-Somewhat similar with C<<<<<< appendTextNode >>>>>>: It lets you set an Element, that contains only a C<<<<<< text node >>>>>> directly by specifying the name and the text content.
+Somewhat similar with C<<<<<< appendTextNode >>>>>>: It lets you set an Element, that contains only a C<<<<<< text node >>>>>> directly by specifying the name and the text content. Returns the newly created
+child element node.
 
 
 =item setNamespace
