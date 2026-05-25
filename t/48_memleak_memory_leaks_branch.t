@@ -12,7 +12,9 @@ createAttributeNS, substringData, deleteData, and toString/toFH code paths.
 
 use constant HAS_LEAKTRACE => eval { require Test::LeakTrace };
 use Test::More HAS_LEAKTRACE
-    ? (tests => 15)
+    ? ($INC{'Devel/Cover.pm'}
+        ? (skip_all => 'Test::LeakTrace false positives under Devel::Cover')
+        : (tests => 15))
     : (skip_all => 'Test::LeakTrace is required for memory leak tests.');
 use Test::LeakTrace;
 
