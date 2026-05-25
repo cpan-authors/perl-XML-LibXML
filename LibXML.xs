@@ -7712,11 +7712,17 @@ validate( self, node )
                                   (xmlSchemaValidityWarningFunc)LibXML_error_handler_ctx,
                                   saved_error );
 
-        if (node->type == XML_DOCUMENT_NODE) {
+        if (node->type == XML_DOCUMENT_NODE
+            || node->type == XML_DOCUMENT_FRAG_NODE) {
             RETVAL = xmlSchemaValidateDoc(vctxt, (xmlDocPtr)node);
         }
-        else {
+        else if (node->type == XML_ELEMENT_NODE) {
             RETVAL = xmlSchemaValidateOneElement(vctxt, node);
+        }
+        else {
+            xmlSchemaFreeValidCtxt( vctxt );
+            CLEANUP_ERROR_HANDLER;
+            croak( "validate expects a Document, DocumentFragment, or Element node" );
         }
 
         xmlSchemaFreeValidCtxt( vctxt );
