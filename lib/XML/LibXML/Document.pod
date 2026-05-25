@@ -677,6 +677,60 @@ if this feature is not available in the running libxml2.
 
 =back
 
+
+=head1 STORABLE SUPPORT
+
+XML::LibXML::Document objects can be serialized with the C<<<<<< Storable >>>>>> module. C<<<<<< Storable::freeze >>>>>>, C<<<<<< Storable::thaw >>>>>>, C<<<<<< Storable::dclone >>>>>>, C<<<<<< Storable::store >>>>>>, and C<<<<<< Storable::retrieve >>>>>> all work as expected.
+
+
+
+  use Storable;
+  use XML::LibXML;
+
+  my $doc = XML::LibXML->load_xml(string => '<root><child/></root>');
+
+  # In-memory cloning
+  my $clone = Storable::dclone($doc);
+
+  # Freeze/thaw round-trip
+  my $frozen = Storable::freeze($doc);
+  my $thawed = Storable::thaw($frozen);
+
+  # Persistent storage
+  Storable::store($doc, '/tmp/doc.storable');
+  my $retrieved = Storable::retrieve('/tmp/doc.storable');
+
+Under the hood, C<<<<<< STORABLE_freeze >>>>>> serializes the document to its XML string form via C<<<<<< toString() >>>>>>, and C<<<<<< STORABLE_thaw >>>>>> reconstructs it via C<<<<<< load_xml() >>>>>>. This means the thawed document is a fully independent copy — modifying the
+original does not affect the clone, and vice versa.
+
+I<<<<<< Limitations: >>>>>>
+
+
+=over 4
+
+=item *
+
+I<<<<<< Document objects only. >>>>>> Individual nodes (elements, attributes, text nodes, etc.) cannot be serialized
+with Storable. Attempting to freeze a non-Document node will throw an
+exception. To transfer individual nodes, serialize them with C<<<<<< toString() >>>>>> and re-parse, or use C<<<<<< $node-E<gt>cloneNode(1) >>>>>> for in-process deep copies.
+
+
+
+=item *
+
+I<<<<<< XPath context, registered namespaces, and                     parser state are not preserved. >>>>>> Only the XML content itself survives the round-trip. Features such as C<<<<<< indexElements() >>>>>> must be re-applied after thawing.
+
+
+
+=item *
+
+I<<<<<< Clone::clone is not supported. >>>>>>C<<<<<< Clone::clone() >>>>>> performs a shallow memory copy that bypasses Storable hooks entirely. Using it
+on XML::LibXML objects will cause memory corruption (double-free). Use C<<<<<< Storable::dclone() >>>>>> or C<<<<<< $doc-E<gt>cloneNode(1) >>>>>> instead.
+
+
+
+=back
+
 =head1 AUTHORS
 
 Matt Sergeant,
