@@ -53,6 +53,7 @@ extern "C" {
 #include <libxml/xmlerror.h>
 #include <libxml/xinclude.h>
 #include <libxml/valid.h>
+#include <libxml/threads.h>
 
 #ifdef LIBXML_PATTERN_ENABLED
 #include <libxml/pattern.h>
@@ -157,6 +158,10 @@ static xmlExternalEntityLoader LibXML_old_ext_ent_loader_global = NULL;
 SV *EXTERNAL_ENTITY_LOADER_FUNC = (SV *)NULL;
 
 SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
+
+#ifdef HAVE_SCHEMAS
+static xmlMutexPtr nonet_swap_mutex = NULL;
+#endif
 
 /* ****************************************************************
  * Error handler
@@ -1580,6 +1585,9 @@ BOOT:
     /* xmlCatalogSetDebug(10); */
     xmlInitializeCatalog(); /* use catalog data */
 #endif
+#ifdef HAVE_SCHEMAS
+    nonet_swap_mutex = xmlNewMutex();
+#endif
 
 
 void
@@ -1683,6 +1691,12 @@ LIBXML_RUNTIME_VERSION()
 void
 END()
     CODE:
+#ifdef HAVE_SCHEMAS
+        if (nonet_swap_mutex) {
+            xmlFreeMutex(nonet_swap_mutex);
+            nonet_swap_mutex = NULL;
+        }
+#endif
         xmlCleanupParser();
 
 int
@@ -7446,6 +7460,7 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
         const char * CLASS = "XML::LibXML::RelaxNG";
         xmlRelaxNGParserCtxtPtr rngctxt = NULL;
         xmlExternalEntityLoader old_ext_ent_loader = NULL;
+        int did_nonet_swap = 0;
         PREINIT_SAVED_ERROR
     CODE:
         INIT_ERROR_HANDLER;
@@ -7465,14 +7480,18 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
         /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
          * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
         if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
+            xmlMutexLock(nonet_swap_mutex);
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
+            did_nonet_swap = 1;
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
+        if ( did_nonet_swap ) {
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
+            xmlMutexUnlock(nonet_swap_mutex);
+        }
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
 	CLEANUP_ERROR_HANDLER;
@@ -7490,6 +7509,7 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
         const char * CLASS = "XML::LibXML::RelaxNG";
         xmlRelaxNGParserCtxtPtr rngctxt = NULL;
         xmlExternalEntityLoader old_ext_ent_loader = NULL;
+        int did_nonet_swap = 0;
         char * string = NULL;
         STRLEN len    = 0;
         PREINIT_SAVED_ERROR
@@ -7516,14 +7536,18 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
         /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
          * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
         if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
+            xmlMutexLock(nonet_swap_mutex);
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
+            did_nonet_swap = 1;
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
+        if ( did_nonet_swap ) {
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
+            xmlMutexUnlock(nonet_swap_mutex);
+        }
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
 	CLEANUP_ERROR_HANDLER;
@@ -7541,6 +7565,7 @@ parse_document( self, doc, parser_options = 0, recover = FALSE )
         const char * CLASS = "XML::LibXML::RelaxNG";
         xmlRelaxNGParserCtxtPtr rngctxt = NULL;
         xmlExternalEntityLoader old_ext_ent_loader = NULL;
+        int did_nonet_swap = 0;
         PREINIT_SAVED_ERROR
     CODE:
         INIT_ERROR_HANDLER;
@@ -7560,14 +7585,18 @@ parse_document( self, doc, parser_options = 0, recover = FALSE )
         /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
          * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
         if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
+            xmlMutexLock(nonet_swap_mutex);
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
+            did_nonet_swap = 1;
         }
 
         RETVAL = xmlRelaxNGParse( rngctxt );
 
-        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
+        if ( did_nonet_swap ) {
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
+            xmlMutexUnlock(nonet_swap_mutex);
+        }
 
         xmlRelaxNGFreeParserCtxt( rngctxt );
 	CLEANUP_ERROR_HANDLER;
@@ -7641,6 +7670,7 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
         const char * CLASS = "XML::LibXML::Schema";
         xmlSchemaParserCtxtPtr rngctxt = NULL;
         xmlExternalEntityLoader old_ext_ent_loader = NULL;
+        int did_nonet_swap = 0;
         PREINIT_SAVED_ERROR
     CODE:
         INIT_ERROR_HANDLER;
@@ -7661,14 +7691,18 @@ parse_location( self, url, parser_options = 0, recover = FALSE )
         /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
          * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
         if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
+            xmlMutexLock(nonet_swap_mutex);
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
+            did_nonet_swap = 1;
         }
 
         RETVAL = xmlSchemaParse( rngctxt );
 
-        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
+        if ( did_nonet_swap ) {
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
+            xmlMutexUnlock(nonet_swap_mutex);
+        }
 
         xmlSchemaFreeParserCtxt( rngctxt );
 	CLEANUP_ERROR_HANDLER;
@@ -7686,6 +7720,7 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
         const char * CLASS = "XML::LibXML::Schema";
         xmlSchemaParserCtxtPtr rngctxt = NULL;
         xmlExternalEntityLoader old_ext_ent_loader = NULL;
+        int did_nonet_swap = 0;
         char * string = NULL;
         STRLEN len    = 0;
         PREINIT_SAVED_ERROR
@@ -7713,14 +7748,18 @@ parse_buffer( self, perlstring, parser_options = 0, recover = FALSE )
         /* EXTERNAL_ENTITY_LOADER_FUNC == NULL guard preserves a user-installed
          * global loader. See CLAUDE.md "Entity loaders" and GH #168. */
         if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) ) {
+            xmlMutexLock(nonet_swap_mutex);
             old_ext_ent_loader = xmlGetExternalEntityLoader();
             xmlSetExternalEntityLoader( xmlNoNetExternalEntityLoader );
+            did_nonet_swap = 1;
         }
 
         RETVAL = xmlSchemaParse( rngctxt );
 
-        if ( EXTERNAL_ENTITY_LOADER_FUNC == NULL && (parser_options & XML_PARSE_NONET) )
+        if ( did_nonet_swap ) {
             xmlSetExternalEntityLoader( (xmlExternalEntityLoader)old_ext_ent_loader );
+            xmlMutexUnlock(nonet_swap_mutex);
+        }
 
         xmlSchemaFreeParserCtxt( rngctxt );
         CLEANUP_ERROR_HANDLER;
