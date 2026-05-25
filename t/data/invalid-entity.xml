@@ -1,0 +1,4 @@
+<!DOCTYPE doc [
+  <!ENTITY ent "<a xmlns:xml='foo'/>">
+]>
+<doc>&ent;</doc>

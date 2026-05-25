@@ -929,15 +929,18 @@ domGetNodeValue( xmlNodePtr n ) {
                 /* ok then toString in this case ... */
                 while (cnode) {
                     xmlBufferPtr buffer = xmlBufferCreate();
+                    xmlChar *content;
                     /* buffer = xmlBufferCreate(); */
                     xmlNodeDump( buffer, n->doc, cnode, 0, 0 );
-                    if ( buffer->content != NULL ) {
+                    content = xmlBufferDetach(buffer);
+                    if ( content != NULL ) {
                         xs_warn( "add item" );
                         if ( retval != NULL ) {
-                            retval = xmlStrcat( retval, buffer->content );
+                            retval = xmlStrcat( retval, content );
+                            xmlFree(content);
                         }
                         else {
-                            retval = xmlStrdup( buffer->content );
+                            retval = content;
                         }
                     }
                     xmlBufferFree( buffer );

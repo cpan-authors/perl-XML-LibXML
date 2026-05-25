@@ -989,7 +989,7 @@ PmmFastEncodeString( int charset,
         in    = xmlBufferCreateStatic((void*)string, len);
         out   = xmlBufferCreate();
         if ( xmlCharEncInFunc( coder, out, in ) >= 0 ) {
-            retval = xmlStrdup( out->content );
+            retval = xmlBufferDetach( out );
             /* warn( "encoded string is %s" , retval); */
         }
         else {
@@ -1042,7 +1042,7 @@ PmmFastDecodeString( int charset,
         out = xmlBufferCreate();
         if ( xmlCharEncOutFunc( coder, out, in ) >= 0 ) {
           *len = xmlBufferLength(out);
-	  retval = xmlStrndup(xmlBufferContent(out), *len);
+	  retval = xmlBufferDetach(out);
         }
         else {
             /* xs_warn("PmmFastEncodeString: decoding error\n"); */

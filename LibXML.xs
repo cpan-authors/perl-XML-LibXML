@@ -200,7 +200,7 @@ SV* PROXY_NODE_REGISTRY_MUTEX = NULL;
 #endif  /* WITH_SERRORS */
 
 #ifdef WITH_SERRORS
-void
+static void
 LibXML_struct_error_callback(SV * saved_error, SV * libErr )
 {
 
@@ -240,7 +240,7 @@ LibXML_struct_error_callback(SV * saved_error, SV * libErr )
     LEAVE;
 }
 
-void
+static void
 LibXML_struct_error_handler(SV * saved_error, xmlErrorPtr error )
 {
     const char * CLASS = "XML::LibXML::LibError";
@@ -252,7 +252,7 @@ LibXML_struct_error_handler(SV * saved_error, xmlErrorPtr error )
 }
 
 
-void
+static void
 LibXML_flat_handler(SV * saved_error, const char * msg, ...)
 {
     SV* sv;
@@ -271,7 +271,7 @@ LibXML_flat_handler(SV * saved_error, const char * msg, ...)
 
 /* If threads-support is working correctly in libxml2 then
  * this method will be called with the correct thread-context */
-void
+static void
 LibXML_error_handler_ctx(void * ctxt, const char * msg, ...)
 {
 	va_list args;
@@ -448,7 +448,7 @@ LibXML_reader_error_handler(void * ctxt,
 }
 #endif /* !defined WITH_SERRORS */
 
-SV *
+static SV *
 LibXML_get_reader_error_data(xmlTextReaderPtr reader)
 {
   SV * saved_error = NULL;
@@ -496,7 +496,7 @@ LibXML_NodeToSv(HV * real_obj, xmlNodePtr real_doc)
  * IO callbacks
  * **************************************************************** */
 
-int
+static int
 LibXML_read_perl (SV * ioref, char * buffer, int len)
 {
     dTHX;
@@ -570,14 +570,14 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
 }
 
 /* used only by Reader */
-int
+static int
 LibXML_close_perl (SV * ioref)
 {
   SvREFCNT_dec(ioref);
   return 0;
 }
 
-int
+static int
 LibXML_input_match(char const * filename)
 {
     int results;
@@ -625,7 +625,7 @@ LibXML_input_match(char const * filename)
     return results;
 }
 
-void *
+static void *
 LibXML_input_open(char const * filename)
 {
     SV * results;
@@ -667,7 +667,7 @@ LibXML_input_open(char const * filename)
     return (void *)results;
 }
 
-int
+static int
 LibXML_input_read(void * context, char * buffer, int len)
 {
     STRLEN res_len;
@@ -733,7 +733,7 @@ LibXML_input_read(void * context, char * buffer, int len)
     return res_len;
 }
 
-int
+static int
 LibXML_input_close(void * context)
 {
     SV * ctxt;
@@ -767,7 +767,7 @@ LibXML_input_close(void * context)
     return 0;
 }
 
-int
+static int
 LibXML_output_write_handler(void * ioref, char * buffer, int len)
 {
     if ( buffer != NULL && len > 0) {
@@ -800,7 +800,7 @@ LibXML_output_write_handler(void * ioref, char * buffer, int len)
     return len;
 }
 
-int
+static int
 LibXML_output_close_handler( void * handler )
 {
     return 1;
@@ -810,7 +810,7 @@ LibXML_output_close_handler( void * handler )
  * "ext_ent_handler" or process-global externalEntityLoader()). DO NOT add
  * URL filtering or no_network checks here -- the user's callback is the
  * policy authority. See CLAUDE.md "Entity loaders" and GH #168/#133/#143. */
-xmlParserInputPtr
+static xmlParserInputPtr
 LibXML_load_external_entity(
         const char * URL,
         const char * ID,
@@ -910,30 +910,7 @@ LibXML_load_external_entity(
  * Helper functions
  * **************************************************************** */
 
-/* Set xmlKeepBlanksDefault before context creation so the new context
-   inherits the correct value.  Must be called before xmlCreate*ParserCtxt.
-   See https://github.com/shlomif/perl-XML-LibXML/issues/88 */
-void
-LibXML_init_global_state( SV * self ) {
-    HV* real_obj;
-    SV** item;
-    int parserOptions = XML_PARSE_NODICT;
-
-    if ( self != NULL ) {
-        real_obj = (HV *)SvRV(self);
-        item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
-        if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
-
-        if (parserOptions & XML_PARSE_NOBLANKS) {
-            xmlKeepBlanksDefault(0);
-        }
-        else {
-            xmlKeepBlanksDefault(1);
-        }
-    }
-}
-
-HV*
+static HV*
 LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
     /* we fetch all switches and callbacks from the hash */
     HV* real_obj = NULL;
@@ -968,35 +945,7 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
         if ((parserOptions & XML_PARSE_DTDLOAD) == 0) {
             parserOptions &= ~(XML_PARSE_DTDVALID | XML_PARSE_DTDATTR | XML_PARSE_NOENT );
         }
-        if (ctxt) xmlCtxtUseOptions(ctxt, parserOptions ); /* Note: sets ctxt->linenumbers = 1 */
-
-        /*
-         * Without this if/else conditional, NOBLANKS has no effect.
-         *
-         * For more information, see:
-         *
-         * https://rt.cpan.org/Ticket/Display.html?id=76696
-         *
-         * */
-        if (parserOptions & XML_PARSE_NOBLANKS) {
-            xmlKeepBlanksDefault(0);
-        }
-        else {
-            xmlKeepBlanksDefault(1);
-        }
-        /* xmlKeepBlanksDefault() only affects future contexts.
-           The current context inherited the old global value at creation time,
-           and xmlCtxtUseOptions() does not reset keepBlanks when NOBLANKS
-           is absent.  Set it explicitly to match the requested options. */
-        if (ctxt) ctxt->keepBlanks = (parserOptions & XML_PARSE_NOBLANKS) ? 0 : 1;
-
-        item =  hv_fetch( real_obj, "XML_LIBXML_LINENUMBERS", 22, 0 );
-        if ( item != NULL && SvTRUE(*item) ) {
-            if (ctxt) ctxt->linenumbers = 1;
-        }
-        else {
-            if (ctxt) ctxt->linenumbers = 0;
-        }
+        if (ctxt) xmlCtxtUseOptions(ctxt, parserOptions);
 
        /* If a user installed a process-global loader via externalEntityLoader(),
         * leave it alone -- they're the policy authority. See CLAUDE.md
@@ -1023,7 +972,7 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
     return real_obj;
 }
 
-void
+static void
 LibXML_cleanup_parser() {
 #ifndef WITH_SERRORS
     xmlGetWarningsDefaultValue = 0;
@@ -1035,7 +984,7 @@ LibXML_cleanup_parser() {
     }
 }
 
-int
+static int
 LibXML_test_node_name( xmlChar * name )
 {
     if ( name == NULL || *name == 0 ) {
@@ -1749,7 +1698,6 @@ _parse_string(self, string, dir = &PL_sv_undef)
         RETVAL = &PL_sv_undef;
         INIT_ERROR_HANDLER;
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt(ptr, len);
             if (ctxt == NULL) {
 	        CLEANUP_ERROR_HANDLER;
@@ -1783,7 +1731,7 @@ _parse_string(self, string, dir = &PL_sv_undef)
             ctxt->directory = NULL;
             well_formed = ctxt->wellFormed;
             valid = ctxt->valid;
-            validate = ctxt->validate;
+            validate = ctxt->options & XML_PARSE_DTDVALID ? 1 : 0;
             real_doc = ctxt->myDoc;
             ctxt->myDoc = NULL;
             xmlFreeParserCtxt(ctxt);
@@ -1839,7 +1787,6 @@ _parse_sax_string(self, string)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -1904,7 +1851,6 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
-            LibXML_init_global_state(self);
             ctxt = xmlCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -1938,7 +1884,7 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
             ctxt->directory = NULL;
             well_formed = ctxt->wellFormed;
             valid = ctxt->valid;
-            validate = ctxt->validate;
+            validate = ctxt->options & XML_PARSE_DTDVALID ? 1 : 0;
             real_doc = ctxt->myDoc;
             ctxt->myDoc = NULL;
             xmlFreeParserCtxt(ctxt);
@@ -2003,7 +1949,6 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
-            LibXML_init_global_state(self);
             sax = PSaxGetHandler();
             ctxt = xmlCreatePushParserCtxt(sax, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
@@ -2069,7 +2014,6 @@ _parse_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2089,7 +2033,7 @@ _parse_file(self, filename_sv)
 
             well_formed = ctxt->wellFormed;
             valid = ctxt->valid;
-            validate = ctxt->validate;
+            validate = ctxt->options & XML_PARSE_DTDVALID ? 1 : 0;
             real_doc = ctxt->myDoc;
             ctxt->myDoc = NULL;
             xmlFreeParserCtxt(ctxt);
@@ -2134,7 +2078,6 @@ _parse_sax_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2399,6 +2342,9 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         int recover = 0;
         xmlChar * chunk;
         xmlNodePtr rv = NULL;
+        SV** item;
+        int parserOptions = 0;
+        int oldKeepBlanks;
         PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(enc)) {
@@ -2417,7 +2363,29 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         if ( chunk != NULL ) {
             recover = LibXML_get_recover(real_obj);
 
+            item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
+            if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
+
+            /*
+             * Without this if/else conditional, NOBLANKS has no effect.
+             *
+             * For more information, see:
+             *
+             * https://rt.cpan.org/Ticket/Display.html?id=76696
+             *
+             * This hack should be removed once libxml2 offers a better
+             * API. See https://gitlab.gnome.org/GNOME/libxml2/-/issues/727
+             */
+            if (parserOptions & XML_PARSE_NOBLANKS) {
+                oldKeepBlanks = xmlKeepBlanksDefault(0);
+            }
+            else {
+                oldKeepBlanks = xmlKeepBlanksDefault(1);
+            }
+
             rv = domReadWellBalancedString( NULL, chunk, recover );
+
+            xmlKeepBlanksDefault(oldKeepBlanks);
 
             if ( rv != NULL ) {
                 xmlNodePtr fragment= NULL;
@@ -2473,6 +2441,9 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         int retCode              = -1;
         xmlNodePtr nodes         = NULL;
         xmlSAXHandlerPtr handler = NULL;
+        SV** item;
+        int parserOptions = 0;
+        int oldKeepBlanks;
         PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(enc)) {
@@ -2491,7 +2462,6 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         chunk = Sv2C(svchunk, (const xmlChar*)encoding);
 
         if ( chunk != NULL ) {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2505,12 +2475,34 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
             PmmSAXInitContext( ctxt, self, saved_error );
             handler = PSaxGetHandler();
 
+            item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
+            if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
+
+            /*
+             * Without this if/else conditional, NOBLANKS has no effect.
+             *
+             * For more information, see:
+             *
+             * https://rt.cpan.org/Ticket/Display.html?id=76696
+             *
+             * This hack should be removed once libxml2 offers a better
+             * API. See https://gitlab.gnome.org/GNOME/libxml2/-/issues/727
+             */
+            if (parserOptions & XML_PARSE_NOBLANKS) {
+                oldKeepBlanks = xmlKeepBlanksDefault(0);
+            }
+            else {
+                oldKeepBlanks = xmlKeepBlanksDefault(1);
+            }
+
             retCode = xmlParseBalancedChunkMemory( NULL,
                                                    handler,
                                                    ctxt,
                                                    0,
                                                    chunk,
                                                    &nodes );
+
+            xmlKeepBlanksDefault(oldKeepBlanks);
 
             xmlFree( handler );
             PmmSAXCloseContext(ctxt);
@@ -2579,7 +2571,6 @@ _start_push(self, with_sax=0)
         INIT_ERROR_HANDLER;
 
         /* create empty context */
-        LibXML_init_global_state(self);
         ctxt = xmlCreatePushParserCtxt( NULL, NULL, NULL, 0, NULL );
         real_obj = LibXML_init_parser(self,ctxt);
         recover = LibXML_get_recover(real_obj);
@@ -3159,7 +3150,7 @@ createDocument( CLASS, version="1.0", encoding=NULL )
         PERL_UNUSED_VAR(ix);
         doc = xmlNewDoc((const xmlChar*)version);
         if (encoding && *encoding != 0) {
-            doc->encoding = (const xmlChar*)xmlStrdup((const xmlChar*)encoding);
+            doc->encoding = xmlStrdup((const xmlChar*)encoding);
         }
         RETVAL = PmmNodeToSv(INT2PTR(xmlNodePtr,doc),NULL);
     OUTPUT:
@@ -9461,10 +9452,6 @@ context_and_column( self )
 	}
        if (ctxt == NULL) XSRETURN_EMPTY;
        input = ctxt->input;
-       if ((input != NULL) && (input->filename == NULL) &&
-            (ctxt->inputNr > 1)) {
-            input = ctxt->inputTab[ctxt->inputNr - 2];
-        }
         if (input == NULL) XSRETURN_EMPTY;
 	cur = input->cur;
 	base = input->base;
@@ -9707,7 +9694,7 @@ encodeToUTF8( encoding, string )
                     in    = xmlBufferCreateStatic((void*)realstring, len );
                     out   = xmlBufferCreate();
                     if ( xmlCharEncInFunc( coder, out, in ) >= 0 ) {
-                        tstr = xmlStrdup( out->content );
+                        tstr = xmlBufferDetach( out );
                     }
 
                     xmlBufferFree( in );
@@ -9797,7 +9784,7 @@ decodeFromUTF8( encoding, string )
                     xmlBufferCCat( in, (char*) realstring );
                     if ( xmlCharEncOutFunc( coder, out, in ) >= 0 ) {
                         len  = xmlBufferLength( out );
-                        tstr = xmlCharStrndup( (char*) xmlBufferContent( out ), len );
+                        tstr = xmlBufferDetach( out );
                     }
 
                     xmlBufferFree( in );

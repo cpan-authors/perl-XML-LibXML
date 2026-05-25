@@ -199,6 +199,7 @@ t/91unique_key.t
 t/cpan-changes.t
 t/data/callbacks_returning_undef.xml
 t/data/chinese.xml
+t/data/invalid-entity.xml
 t/lib/Collector.pm
 t/lib/Counter.pm
 t/lib/Stacker.pm
