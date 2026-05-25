@@ -128,7 +128,7 @@ have to create a parser instance before you can parse any XML data.
 Create a new XML and HTML parser instance. Each parser instance holds default
 values for various parser options. Optionally, one can pass a hash reference or
 a list of option => value pairs to set a different default set of options.
-Unless specified otherwise, the options C<<<<<< load_ext_dtd >>>>>>, and C<<<<<< expand_entities >>>>>> are set to 1. See L<<<<<< Parser Options >>>>>> for a list of libxml2 parser's options.
+Unless specified otherwise, the options C<<<<<< load_ext_dtd >>>>>> and C<<<<<< expand_entities >>>>>> are set to 0. See L<<<<<< Parser Options >>>>>> for a list of libxml2 parser's options.
 
 
 
@@ -667,7 +667,7 @@ Note that validation is switched off automatically in recovery mode.
 
 /parser, reader/
 
-substitute entities; possible values are 0 and 1; default is 1
+substitute entities; possible values are 0 and 1; default is 0
 
 Note that although this flag disables entity substitution, it does not prevent
 the parser from loading external entities; when substitution of an external
@@ -718,7 +718,7 @@ resolvers, as in
 /parser, reader/
 
 load the external DTD subset while parsing; possible values are 0 and 1. Unless
-specified, XML::LibXML sets this option to 1.
+specified, XML::LibXML sets this option to 0.
 
 This flag is also required for DTD Validation, to provide complete attribute,
 and to expand entities, regardless if the document has an internal subset. Thus
