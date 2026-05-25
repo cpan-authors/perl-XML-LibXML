@@ -3131,11 +3131,9 @@ URI( self )
         XML::LibXML::Document::documentURI = 1
     CODE:
         PERL_UNUSED_VAR(ix);
-        RETVAL = (const char*)xmlStrdup(self->URL );
+        RETVAL = (const char*)self->URL;
     OUTPUT:
         RETVAL
-    CLEANUP:
-        xmlFree((xmlChar*)RETVAL);
 
 void
 setURI( self, new_URI )
