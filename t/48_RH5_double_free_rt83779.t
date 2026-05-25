@@ -12,8 +12,11 @@ See L<https://rt.cpan.org/Ticket/Display.html?id=83779>.
 =cut
 
 use constant HAS_LEAKTRACE => eval{ require Test::LeakTrace };
-use Test::More HAS_LEAKTRACE ? (tests => 6) : (skip_all => 'Test::LeakTrace is required.');
-use Test::LeakTrace;
+use constant SKIP_LEAK_TESTS => !!$INC{'Devel/Cover.pm'};
+use Test::More HAS_LEAKTRACE ? (tests => SKIP_LEAK_TESTS ? 3 : 6) : (skip_all => 'Test::LeakTrace is required.');
+if ( !SKIP_LEAK_TESTS ) {
+    Test::LeakTrace->import;
+}
 use XML::LibXML::Reader;
 
 my $xml = <<'EOF';
@@ -71,30 +74,35 @@ EOF
     );
 }
 
-# TEST
-no_leaks_ok {
-    my $r = XML::LibXML::Reader->new(string => $xml);
-    while ($r->read) {
-        # nothing
-    }
-} 'Check reader, without leaks';
+SKIP: {
+    skip 'Devel::Cover instrumentation interferes with Test::LeakTrace', 3
+        if SKIP_LEAK_TESTS;
 
-# TEST
-no_leaks_ok {
-    my $node;
-    {
+    # TEST
+    no_leaks_ok {
         my $r = XML::LibXML::Reader->new(string => $xml);
         while ($r->read) {
-            $node ||= $r->preserveNode();
+            # nothing
         }
-        my $doc = $r->document();
-    }
-} 'Check reader with using preserveNode, without leaks';
+    } 'Check reader, without leaks';
 
-# TEST
-no_leaks_ok {
-    my $r = XML::LibXML::Reader->new(string => $xml);
-    while ($r->read) {
-        my $copy = $r->copyCurrentNode();
-    }
-} 'Check reader with using copyCurrentNode, without leaks';
+    # TEST
+    no_leaks_ok {
+        my $node;
+        {
+            my $r = XML::LibXML::Reader->new(string => $xml);
+            while ($r->read) {
+                $node ||= $r->preserveNode();
+            }
+            my $doc = $r->document();
+        }
+    } 'Check reader with using preserveNode, without leaks';
+
+    # TEST
+    no_leaks_ok {
+        my $r = XML::LibXML::Reader->new(string => $xml);
+        while ($r->read) {
+            my $copy = $r->copyCurrentNode();
+        }
+    } 'Check reader with using copyCurrentNode, without leaks';
+}
