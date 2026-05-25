@@ -3364,6 +3364,16 @@ createElementNS( self, nsURI, name )
 
 			ns = xmlNewNs( NULL, eURI, prefix );
             newNode = xmlNewDocNode( self, ns, localname, NULL );
+            if ( newNode == NULL ) {
+                xmlFreeNs(ns);
+                xmlFree(localname);
+                if ( prefix != NULL ) {
+                    xmlFree(prefix);
+                }
+                xmlFree(eURI);
+                xmlFree(ename);
+                XSRETURN_UNDEF;
+            }
 			newNode->nsDef = ns;
 
             xmlFree(localname);
@@ -3374,6 +3384,13 @@ createElementNS( self, nsURI, name )
             localname = ename;
 
             newNode = xmlNewDocNode( self, NULL , localname, NULL );
+            if ( newNode == NULL ) {
+                if ( eURI != NULL ) {
+                    xmlFree(eURI);
+                }
+                xmlFree(ename);
+                XSRETURN_UNDEF;
+            }
         }
 
         docfrag = PmmNewFragment( self );
@@ -3419,6 +3436,15 @@ createRawElementNS( self, nsURI, name )
             }
 
             newNode = xmlNewDocNode( self,NULL , localname, NULL );
+            if ( newNode == NULL ) {
+                xmlFree(eURI);
+                xmlFree(localname);
+                if ( prefix != NULL ) {
+                    xmlFree(prefix);
+                }
+                xmlFree(ename);
+                XSRETURN_UNDEF;
+            }
 
             ns = xmlSearchNsByHref( self, newNode, eURI );
             if ( ns == NULL ) {
@@ -3445,6 +3471,13 @@ createRawElementNS( self, nsURI, name )
             localname = ename;
 
             newNode = xmlNewDocNode( self, NULL , localname, NULL );
+            if ( newNode == NULL ) {
+                if ( eURI != NULL ) {
+                    xmlFree(eURI);
+                }
+                xmlFree(ename);
+                XSRETURN_UNDEF;
+            }
         }
 
         xmlSetNs(newNode, ns);
@@ -6622,6 +6655,13 @@ addNewChild( self, namespaceURI, nodename )
                                 ns,
                                 localname?localname:name,
                                 NULL);
+            if ( newNode == NULL ) {
+                xmlFree(localname);
+                xmlFree(prefix);
+                xmlFree(nsURI);
+                xmlFree(name);
+                XSRETURN_UNDEF;
+            }
             if ( ns == NULL )  {
 	        xmlSetNs(newNode,xmlNewNs(newNode, nsURI, prefix));
             }
@@ -6635,6 +6675,10 @@ addNewChild( self, namespaceURI, nodename )
                                     NULL,
                                     name,
                                     NULL);
+            if ( newNode == NULL ) {
+                xmlFree(name);
+                XSRETURN_UNDEF;
+            }
         }
         xmlFree(name);
         /* add the node to the parent node */
