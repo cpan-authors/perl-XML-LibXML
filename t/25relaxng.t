@@ -16,7 +16,7 @@ BEGIN {
     use XML::LibXML;
 
     if ( XML::LibXML::LIBXML_VERSION >= 20510 ) {
-        plan tests => 17;
+        plan tests => 21;
     }
     else {
         plan skip_all => 'Skip No RNG Support compiled';
@@ -155,6 +155,58 @@ EOF
     like( $@, qr{Attempt to load network entity}, 'RNG from buffer with external import and no_network => 1 throws an exception.' );
     # TEST
     ok( !defined $rng, 'RNG from buffer with external import and no_network => 1 is not loaded.' );
+}
+
+
+print "# 7 re-validate a namespaced document after DOM modification (RT#63655)\n";
+{
+    my $namespace = "test/relaxng/ns.rng";
+    my $rngschema = XML::LibXML::RelaxNG->new(location => $namespace);
+    my $doc = $xmlparser->parse_string(<<'EOD');
+<?xml version="1.0" encoding="utf-8"?>
+<datastore xmlns="http://xmlns.example.com/2007/test/datastore">
+  <data>
+    <active>
+      <element id="uuidtest1">
+        <title>Ze element</title>
+        <payload>Ze element payload</payload>
+      </element>
+    </active>
+  </data>
+</datastore>
+EOD
+    eval { $rngschema->validate($doc); };
+    # TEST
+    ok(!$@, 'initial namespaced document validates');
+
+    my $ns = 'http://xmlns.example.com/2007/test/datastore';
+    my $node = $doc->createElementNS($ns, "element");
+
+    my $title = $doc->createElementNS($ns, "title");
+    $title->appendText("Annoying tests are annoying");
+    $node->appendChild($title);
+
+    my $payload = $doc->createElementNS($ns, "payload");
+    $payload->appendText("some payload");
+    $node->appendChild($payload);
+
+    $node->setAttribute('id', 'uuidIamAtestElement');
+
+    my ($active) = $doc->getElementsByTagName("active");
+    eval { $rngschema->validate($doc); };
+    # TEST
+    ok(!$@, 'validates before appending new node');
+
+    $active->appendChild($node);
+
+    my $reparsed_doc = $xmlparser->parse_string($doc->toString);
+    eval { $rngschema->validate($reparsed_doc); };
+    # TEST
+    ok(!$@, 'reparsed document with new node validates');
+
+    eval { $rngschema->validate($doc); };
+    # TEST
+    ok(!$@, 'DOM-modified document re-validates (RT#63655)');
 }
 
 
