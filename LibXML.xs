@@ -907,6 +907,29 @@ LibXML_load_external_entity(
  * Helper functions
  * **************************************************************** */
 
+/* Set xmlKeepBlanksDefault before context creation so the new context
+   inherits the correct value.  Must be called before xmlCreate*ParserCtxt.
+   See https://github.com/shlomif/perl-XML-LibXML/issues/88 */
+void
+LibXML_init_global_state( SV * self ) {
+    HV* real_obj;
+    SV** item;
+    int parserOptions = XML_PARSE_NODICT;
+
+    if ( self != NULL ) {
+        real_obj = (HV *)SvRV(self);
+        item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
+        if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
+
+        if (parserOptions & XML_PARSE_NOBLANKS) {
+            xmlKeepBlanksDefault(0);
+        }
+        else {
+            xmlKeepBlanksDefault(1);
+        }
+    }
+}
+
 HV*
 LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
     /* we fetch all switches and callbacks from the hash */
@@ -958,6 +981,11 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
         else {
             xmlKeepBlanksDefault(1);
         }
+        /* xmlKeepBlanksDefault() only affects future contexts.
+           The current context inherited the old global value at creation time,
+           and xmlCtxtUseOptions() does not reset keepBlanks when NOBLANKS
+           is absent.  Set it explicitly to match the requested options. */
+        if (ctxt) ctxt->keepBlanks = (parserOptions & XML_PARSE_NOBLANKS) ? 0 : 1;
 
         item =  hv_fetch( real_obj, "XML_LIBXML_LINENUMBERS", 22, 0 );
         if ( item != NULL && SvTRUE(*item) ) {
@@ -1718,6 +1746,7 @@ _parse_string(self, string, dir = &PL_sv_undef)
         RETVAL = &PL_sv_undef;
         INIT_ERROR_HANDLER;
         {
+            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt(ptr, len);
             if (ctxt == NULL) {
 	        CLEANUP_ERROR_HANDLER;
@@ -1807,6 +1836,7 @@ _parse_sax_string(self, string)
         INIT_ERROR_HANDLER;
 
         {
+            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -1871,6 +1901,7 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
+            LibXML_init_global_state(self);
             ctxt = xmlCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -1969,6 +2000,7 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
+            LibXML_init_global_state(self);
             sax = PSaxGetHandler();
             ctxt = xmlCreatePushParserCtxt(sax, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
@@ -2034,6 +2066,7 @@ _parse_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
+            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2098,6 +2131,7 @@ _parse_sax_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
+            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2454,6 +2488,7 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         chunk = Sv2C(svchunk, (const xmlChar*)encoding);
 
         if ( chunk != NULL ) {
+            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2541,6 +2576,7 @@ _start_push(self, with_sax=0)
         INIT_ERROR_HANDLER;
 
         /* create empty context */
+        LibXML_init_global_state(self);
         ctxt = xmlCreatePushParserCtxt( NULL, NULL, NULL, 0, NULL );
         real_obj = LibXML_init_parser(self,ctxt);
         recover = LibXML_get_recover(real_obj);
