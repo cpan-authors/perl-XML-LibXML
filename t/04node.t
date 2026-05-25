@@ -497,9 +497,9 @@ my $doc    = $parser->parse_string( $xmlstring );
     $setup->();
     my $baz = XML::LibXML::Element->new('baz');
     $foo->replaceNode($baz);
-    my @cn = $dom->documentElement->childNodes;
     # TEST
-    is(scalar(@cn), 1, 'replaceNode correctly inserts standalone node');
+    is($dom->documentElement->toString, '<root><baz/></root>',
+        'replaceNode correctly inserts standalone node');
 }
 
 # 6.   implicit attribute manipulation
