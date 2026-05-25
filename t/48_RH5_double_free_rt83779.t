@@ -16,6 +16,8 @@ use Test::More HAS_LEAKTRACE ? (tests => 6) : (skip_all => 'Test::LeakTrace is r
 use Test::LeakTrace;
 use XML::LibXML::Reader;
 
+my $under_cover = exists $INC{'Devel/Cover.pm'};
+
 my $xml = <<'EOF';
 <html>
   <head>
@@ -71,30 +73,34 @@ EOF
     );
 }
 
-# TEST
-no_leaks_ok {
-    my $r = XML::LibXML::Reader->new(string => $xml);
-    while ($r->read) {
-        # nothing
-    }
-} 'Check reader, without leaks';
+SKIP: {
+    skip 'Test::LeakTrace unreliable under Devel::Cover', 3 if $under_cover;
 
-# TEST
-no_leaks_ok {
-    my $node;
-    {
+    # TEST
+    no_leaks_ok {
         my $r = XML::LibXML::Reader->new(string => $xml);
         while ($r->read) {
-            $node ||= $r->preserveNode();
+            # nothing
         }
-        my $doc = $r->document();
-    }
-} 'Check reader with using preserveNode, without leaks';
+    } 'Check reader, without leaks';
 
-# TEST
-no_leaks_ok {
-    my $r = XML::LibXML::Reader->new(string => $xml);
-    while ($r->read) {
-        my $copy = $r->copyCurrentNode();
-    }
-} 'Check reader with using copyCurrentNode, without leaks';
+    # TEST
+    no_leaks_ok {
+        my $node;
+        {
+            my $r = XML::LibXML::Reader->new(string => $xml);
+            while ($r->read) {
+                $node ||= $r->preserveNode();
+            }
+            my $doc = $r->document();
+        }
+    } 'Check reader with using preserveNode, without leaks';
+
+    # TEST
+    no_leaks_ok {
+        my $r = XML::LibXML::Reader->new(string => $xml);
+        while ($r->read) {
+            my $copy = $r->copyCurrentNode();
+        }
+    } 'Check reader with using copyCurrentNode, without leaks';
+}
