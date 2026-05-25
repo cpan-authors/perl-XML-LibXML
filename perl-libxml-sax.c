@@ -147,7 +147,7 @@ PmmSAXInitialize(pTHX)
 }
 
 xmlSAXHandlerPtr PSaxGetHandler();
-int PSaxCharactersFlush(void *, struct CBuffer *);
+void PSaxCharactersFlush(void *, struct CBuffer *);
 
 
 /* Character buffering functions */
@@ -899,13 +899,12 @@ PmmUpdateLocator( xmlParserCtxtPtr ctxt )
     }
 }
 
-int
+void
 PSaxSetDocumentLocator(void *ctx, xmlSAXLocatorPtr loc)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr  sax  = (PmmSAXVectorPtr)ctxt->_private;
     dTHX;
-    HV* empty;
     SV * handler          = sax->handler;
     SV * rv;
 
@@ -940,10 +939,9 @@ PSaxSetDocumentLocator(void *ctx, xmlSAXLocatorPtr loc)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxStartDocument(void * ctx)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1010,10 +1008,9 @@ PSaxStartDocument(void * ctx)
         LEAVE ;
     }
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxEndDocument(void * ctx)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1045,10 +1042,9 @@ PSaxEndDocument(void * ctx)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxStartElement(void *ctx, const xmlChar * name, const xmlChar** attr)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1101,10 +1097,9 @@ PSaxStartElement(void *ctx, const xmlChar * name, const xmlChar** attr)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxEndElement(void *ctx, const xmlChar * name) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr  sax  = (PmmSAXVectorPtr)ctxt->_private;
@@ -1146,10 +1141,9 @@ PSaxEndElement(void *ctx, const xmlChar * name) {
 
     PmmNarrowNsStack(sax, handler);
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxCharactersDispatch(void *ctx, const xmlChar * ch, int len) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr sax = (PmmSAXVectorPtr)ctxt->_private;
@@ -1160,7 +1154,7 @@ PSaxCharactersDispatch(void *ctx, const xmlChar * ch, int len) {
 
     if ( sax == NULL ) {
 /*         warn( "lost my sax context!? ( %s, %d )\n", ch, len ); */
-        return 0;
+        return;
     }
 
     handler = sax->handler;
@@ -1193,19 +1187,17 @@ PSaxCharactersDispatch(void *ctx, const xmlChar * ch, int len) {
 
     }
     CLEAR_SERROR_HANDLER;
-    return 1;
 }
 
-int PSaxCharactersFlush (void *ctx, struct CBuffer *buffer) {
+void PSaxCharactersFlush (void *ctx, struct CBuffer *buffer) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr sax = (PmmSAXVectorPtr)ctxt->_private;
     xmlChar *ch;
     size_t buflen;
     int len;
-    int ret;
 
     if (buffer->head == NULL || buffer->head->data == NULL) {
-        return 1;
+        return;
     }
 
     ch = CBufferCharacters(sax->charbuf);
@@ -1219,12 +1211,11 @@ int PSaxCharactersFlush (void *ctx, struct CBuffer *buffer) {
 
     CBufferPurge(buffer);
 
-    ret = PSaxCharactersDispatch(ctx, ch, len);
+    PSaxCharactersDispatch(ctx, ch, len);
     xmlFree(ch);
-    return ret;
 }
 
-int PSaxCharacters (void *ctx, const xmlChar * ch, int len) {
+void PSaxCharacters (void *ctx, const xmlChar * ch, int len) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr sax = (PmmSAXVectorPtr)ctxt->_private;
 
@@ -1233,13 +1224,13 @@ int PSaxCharacters (void *ctx, const xmlChar * ch, int len) {
     if (sax->joinchars) {
         struct CBuffer *buffer = sax->charbuf;
         CBufferAppend(buffer, ch, len);
-        return 1;
+        return;
     }
 
-    return PSaxCharactersDispatch(ctx, ch, len);
+    PSaxCharactersDispatch(ctx, ch, len);
 }
 
-int
+void
 PSaxComment(void *ctx, const xmlChar * ch) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr sax = (PmmSAXVectorPtr)ctxt->_private;
@@ -1282,10 +1273,9 @@ PSaxComment(void *ctx, const xmlChar * ch) {
         LEAVE ;
     }
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
-int
+void
 PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
     PmmSAXVectorPtr sax = (PmmSAXVectorPtr)ctxt->_private;
@@ -1349,11 +1339,10 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
 
     }
     CLEAR_SERROR_HANDLER
-    return 1;
 
 }
 
-int
+void
 PSaxProcessingInstruction( void * ctx, const xmlChar * target, const xmlChar * data )
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1396,7 +1385,6 @@ PSaxProcessingInstruction( void * ctx, const xmlChar * target, const xmlChar * d
         LEAVE ;
     }
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
 void PSaxExternalSubset (void * ctx,
@@ -1513,7 +1501,7 @@ PSaxUnparsedEntityDecl (void * ctx,
 }
 */
 
-int
+void
 PmmSaxWarning(void * ctx, const char * msg, ...)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1557,11 +1545,10 @@ PmmSaxWarning(void * ctx, const char * msg, ...)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
 
-int
+void
 PmmSaxError(void * ctx, const char * msg, ...)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1619,11 +1606,10 @@ PmmSaxError(void * ctx, const char * msg, ...)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
 
-int
+void
 PmmSaxFatalError(void * ctx, const char * msg, ...)
 {
     xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)ctx;
@@ -1666,7 +1652,6 @@ PmmSaxFatalError(void * ctx, const char * msg, ...)
     FREETMPS ;
     LEAVE ;
     CLEAR_SERROR_HANDLER
-    return 1;
 }
 
 /* NOTE:
@@ -1679,32 +1664,32 @@ PSaxGetHandler()
     xmlSAXHandlerPtr retval = (xmlSAXHandlerPtr)xmlMalloc(sizeof(xmlSAXHandler));
     memset(retval, 0, sizeof(xmlSAXHandler));
 
-    retval->setDocumentLocator = (setDocumentLocatorSAXFunc)&PSaxSetDocumentLocator;
+    retval->setDocumentLocator = PSaxSetDocumentLocator;
 
-    retval->startDocument = (startDocumentSAXFunc)&PSaxStartDocument;
+    retval->startDocument = PSaxStartDocument;
 
     /* libxml2 will not handle perls returnvalue correctly, so we have
      * to end the document ourselfes
      */
-    retval->endDocument   = NULL; /* (endDocumentSAXFunc)&PSaxEndDocument; */
+    retval->endDocument   = NULL; /* PSaxEndDocument; */
 
-    retval->startElement  = (startElementSAXFunc)&PSaxStartElement;
-    retval->endElement    = (endElementSAXFunc)&PSaxEndElement;
+    retval->startElement  = PSaxStartElement;
+    retval->endElement    = PSaxEndElement;
 
-    retval->characters    = (charactersSAXFunc)&PSaxCharacters;
-    retval->ignorableWhitespace = (ignorableWhitespaceSAXFunc)&PSaxCharacters;
+    retval->characters    = PSaxCharacters;
+    retval->ignorableWhitespace = PSaxCharacters;
 
-    retval->comment       = (commentSAXFunc)&PSaxComment;
-    retval->cdataBlock    = (cdataBlockSAXFunc)&PSaxCDATABlock;
+    retval->comment       = PSaxComment;
+    retval->cdataBlock    = PSaxCDATABlock;
 
-    retval->processingInstruction = (processingInstructionSAXFunc)&PSaxProcessingInstruction;
+    retval->processingInstruction = PSaxProcessingInstruction;
 
     /* warning functions should be internal */
-    retval->warning    = (warningSAXFunc)&PmmSaxWarning;
-    retval->error      = (errorSAXFunc)&PmmSaxError;
-    retval->fatalError = (fatalErrorSAXFunc)&PmmSaxFatalError;
+    retval->warning    = PmmSaxWarning;
+    retval->error      = PmmSaxError;
+    retval->fatalError = PmmSaxFatalError;
 
-    retval->externalSubset = (externalSubsetSAXFunc)&PSaxExternalSubset;
+    retval->externalSubset = PSaxExternalSubset;
 
     /*
     retval->internalSubset = (internalSubsetSAXFunc)&PSaxInternalSubset;

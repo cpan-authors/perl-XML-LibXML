@@ -71,6 +71,10 @@ my %xsbuild_concat = (
   DEFINE  => '-DHAVE_UTF8',
   OBJECT  => '$(O_FILES)',
 );
+
+if ($ENV{DEVELOPER}) {
+  $xsbuild_concat{DEFINE} .= ' -Wall -Wextra -Wno-unused-parameter -Werror=implicit-function-declaration';
+}
 my %xsbuild = Alien::Base::Wrapper->mm_args;  # Might contain a definition of DEFINE, must thus concatenate.
 while (my ($k, $v) = each %xsbuild_concat) {
   my $base_val = $xsbuild{$k};

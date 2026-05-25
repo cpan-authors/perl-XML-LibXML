@@ -554,7 +554,9 @@ LibXML_read_perl (SV * ioref, char * buffer, int len)
      * that more than len bytes are read which would overflow the buffer.
      * Check for this condition also by comparing the return value.
      */
-    if (read_results_iv != read_length || read_length > len) {
+    if (read_results_iv < 0
+        || (STRLEN)read_results_iv != read_length
+        || (int)read_length > len) {
         croak("Read more bytes than requested. Do you use an encoding-related"
               " PerlIO layer?");
     }
@@ -731,7 +733,7 @@ LibXML_input_read(void * context, char * buffer, int len)
     return res_len;
 }
 
-void
+int
 LibXML_input_close(void * context)
 {
     SV * ctxt;
@@ -762,6 +764,7 @@ LibXML_input_close(void * context)
         FREETMPS;
         LEAVE;
     }
+    return 0;
 }
 
 int
@@ -877,7 +880,7 @@ LibXML_load_external_entity(
 
         results_pv = SvPV(results, results_len);
         int_results_len = results_len;
-        if ((results_len > INT_MAX) || (int_results_len != results_len)) {
+        if ((results_len > INT_MAX) || ((STRLEN)int_results_len != results_len)) {
             croak("a buffer would be too big\n");
         }
         input_buf = xmlAllocParserInputBuffer(XML_CHAR_ENCODING_NONE);
@@ -2694,7 +2697,6 @@ _end_sax_push(self, pctxt)
         SV * self
         SV * pctxt
     PREINIT:
-        HV * real_obj;
         xmlParserCtxtPtr ctxt = NULL;
         PREINIT_SAVED_ERROR
     INIT:
@@ -2704,7 +2706,7 @@ _end_sax_push(self, pctxt)
         }
     CODE:
         INIT_ERROR_HANDLER;
-        real_obj = LibXML_init_parser(self,NULL);
+        (void)LibXML_init_parser(self,NULL);
 
         xmlParseChunk(ctxt, "", 0, 1); /* finish the parse */
         xs_warn( "Finished with SAX push parser\n" );
@@ -3931,6 +3933,7 @@ importNode( self, node, dummy=0 )
         xmlNodePtr ret = NULL;
         ProxyNodePtr docfrag = NULL;
     CODE:
+        PERL_UNUSED_VAR(dummy);
         if ( node->type == XML_DOCUMENT_NODE
              || node->type == XML_HTML_DOCUMENT_NODE ) {
             croak( "Can't import Documents!" );
@@ -4220,8 +4223,10 @@ void
 DESTROY( node )
         SV * node
     PREINIT:
+#ifdef XML_LIBXML_THREADS
         int count;
         SV *is_shared;
+#endif
     CODE:
 #ifdef XML_LIBXML_THREADS
     if ( (is_shared = get_sv("XML::LibXML::__threads_shared", 0)) == NULL ) {
@@ -5033,8 +5038,6 @@ unbindNode( self )
     ALIAS:
         XML::LibXML::Node::unlink = 1
         XML::LibXML::Node::unlinkNode = 2
-    PREINIT:
-        ProxyNodePtr docfrag     = NULL;
     CODE:
         PERL_UNUSED_VAR(ix);
         if ( self->type != XML_DOCUMENT_NODE
@@ -5337,7 +5340,6 @@ _toStringC14N(self, comments=0, xpath=&PL_sv_undef, exclusive=0, inc_prefix_list
         xmlXPathContextPtr child_ctxt = NULL;
         xmlXPathObjectPtr xpath_res = NULL;
         xmlNodeSetPtr nodelist        = NULL;
-        xmlNodePtr refNode            = NULL;
         PREINIT_SAVED_ERROR
     INIT:
         /* due to how c14n is implemented, the nodeset it receives must
@@ -5347,8 +5349,6 @@ _toStringC14N(self, comments=0, xpath=&PL_sv_undef, exclusive=0, inc_prefix_list
         if ( self->doc == NULL ) {
             croak("Node passed to toStringC14N must be part of a document");
         }
-
-        refNode = self;
     CODE:
         if ( xpath != NULL && xpath != &PL_sv_undef ) {
             nodepath = Sv2C( xpath, NULL );
@@ -5371,11 +5371,6 @@ _toStringC14N(self, comments=0, xpath=&PL_sv_undef, exclusive=0, inc_prefix_list
         }
 
         if ( nodepath != NULL ) {
-            if ( self->type == XML_DOCUMENT_NODE
-                 || self->type == XML_HTML_DOCUMENT_NODE
-                 || self->type == XML_DOCB_DOCUMENT_NODE ) {
-                refNode = xmlDocGetRootElement( self->doc );
-            }
 	    if (SvOK(xpath_context)) {
 	      child_ctxt = INT2PTR(xmlXPathContextPtr,SvIV(SvRV(xpath_context)));
 	      if ( child_ctxt == NULL ) {
@@ -6573,6 +6568,7 @@ appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
             XSRETURN_UNDEF;
         }
     CODE:
+        PERL_UNUSED_VAR(nsURI);
         content = nodeSv2C(strcontent, self);
         if ( content &&  xmlStrlen( content ) == 0 ) {
             xmlFree(content);
@@ -7049,6 +7045,7 @@ toString(self , format=0, useDomEncoding = &PL_sv_undef )
            libxml2
 	 */
         PERL_UNUSED_VAR(ix);
+        PERL_UNUSED_VAR(format);
         buffer = xmlBufferCreate();
         xmlBufferAdd(buffer, BAD_CAST " ", 1);
         if ((node->ns != NULL) && (node->ns->prefix != NULL)) {

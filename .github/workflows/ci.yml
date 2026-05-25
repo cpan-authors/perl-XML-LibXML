@@ -208,6 +208,7 @@ jobs:
     env:
       PERL_USE_UNSAFE_INC: 0
       AUTOMATED_TESTING: 1
+      DEVELOPER: 1
 
     strategy:
       fail-fast: false
@@ -270,7 +271,7 @@ jobs:
             sudo ${{ matrix.os.pkginstall }}
             pkg-config --modversion libxml-2.0 2>/dev/null || xml2-config --version 2>/dev/null || true
             curl -L https://cpanmin.us | sudo perl - --notest Alien::Libxml2 XML::NamespaceSupport XML::SAX XML::SAX::Base
-            perl Makefile.PL
+            DEVELOPER=1 perl Makefile.PL
             make
             prove -wlvmb t
 
@@ -284,6 +285,7 @@ jobs:
     env:
       PERL_USE_UNSAFE_INC: 0
       AUTOMATED_TESTING: 1
+      DEVELOPER: 1
 
     steps:
       - uses: actions/checkout@v6
@@ -314,6 +316,7 @@ jobs:
     env:
       PERL_USE_UNSAFE_INC: 0
       AUTOMATED_TESTING: 1
+      DEVELOPER: 1
 
     steps:
       - uses: actions/checkout@v6
@@ -335,6 +338,9 @@ jobs:
   windows:
     needs: [author-testing, linux]
     runs-on: windows-latest
+
+    env:
+      DEVELOPER: 1
 
     steps:
       - uses: actions/checkout@v6
@@ -368,6 +374,7 @@ jobs:
     env:
       PERL_USE_UNSAFE_INC: 0
       AUTOMATED_TESTING: 1
+      DEVELOPER: 1
       LIBXML2_VERSION: ${{ matrix.libxml2-version }}
       LIBXML2_INSTALL_DIR: ${{ github.workspace }}/install-${{ matrix.libxml2-version }}
 
