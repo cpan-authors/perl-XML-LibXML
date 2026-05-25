@@ -759,6 +759,12 @@ line_number() will always return 0.
 
 =back
 
+
+=head1 STORABLE
+
+Attempting to serialize a non-Document node with C<<<<<< Storable >>>>>> will throw an exception. XML::LibXML nodes are bound to their owner document's
+C data structures, so they cannot be meaningfully serialized in isolation. Use C<<<<<< $node-E<gt>toString() >>>>>> and re-parse, or C<<<<<< $node-E<gt>cloneNode(1) >>>>>> for in-process deep copies. See the L<<<<<< XML::LibXML::Document >>>>>> manpage for Document-level Storable support.
+
 =head1 AUTHORS
 
 Matt Sergeant,

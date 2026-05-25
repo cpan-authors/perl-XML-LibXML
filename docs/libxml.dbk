@@ -3069,6 +3069,64 @@ my $dtd      = $document-&gt;createInternalSubset( "foo", "-//FOO//DTD FOO 0.1//
             </varlistentry>
         </variablelist>
       </sect1>
+      <sect1>
+            <title>Storable Support</title>
+            <para>XML::LibXML::Document objects can be serialized with the
+            <literal>Storable</literal> module.
+            <function>Storable::freeze</function>, <function>Storable::thaw</function>,
+            <function>Storable::dclone</function>,
+            <function>Storable::store</function>, and
+            <function>Storable::retrieve</function> all work as expected.
+            </para>
+            <programlisting>use Storable;
+use XML::LibXML;
+
+my $doc = XML::LibXML-&gt;load_xml(string =&gt; '&lt;root&gt;&lt;child/&gt;&lt;/root&gt;');
+
+# In-memory cloning
+my $clone = Storable::dclone($doc);
+
+# Freeze/thaw round-trip
+my $frozen = Storable::freeze($doc);
+my $thawed = Storable::thaw($frozen);
+
+# Persistent storage
+Storable::store($doc, '/tmp/doc.storable');
+my $retrieved = Storable::retrieve('/tmp/doc.storable');</programlisting>
+
+            <para>Under the hood, <function>STORABLE_freeze</function> serializes
+            the document to its XML string form via <function>toString()</function>,
+            and <function>STORABLE_thaw</function> reconstructs it via
+            <function>load_xml()</function>. This means the thawed document is a
+            fully independent copy — modifying the original does not affect the
+            clone, and vice versa.</para>
+
+            <para><emphasis>Limitations:</emphasis></para>
+            <itemizedlist>
+                <listitem>
+                    <para><emphasis>Document objects only.</emphasis>
+                    Individual nodes (elements, attributes, text nodes, etc.) cannot
+                    be serialized with Storable. Attempting to freeze a non-Document
+                    node will throw an exception. To transfer individual nodes, serialize
+                    them with <function>toString()</function> and re-parse, or use
+                    <function>$node-&gt;cloneNode(1)</function> for in-process deep copies.</para>
+                </listitem>
+                <listitem>
+                    <para><emphasis>XPath context, registered namespaces, and
+                    parser state are not preserved.</emphasis> Only the XML content
+                    itself survives the round-trip. Features such as
+                    <function>indexElements()</function> must be re-applied after thawing.</para>
+                </listitem>
+                <listitem>
+                    <para><emphasis>Clone::clone is not supported.</emphasis>
+                    <function>Clone::clone()</function> performs a shallow memory copy
+                    that bypasses Storable hooks entirely. Using it on XML::LibXML objects
+                    will cause memory corruption (double-free). Use
+                    <function>Storable::dclone()</function> or
+                    <function>$doc-&gt;cloneNode(1)</function> instead.</para>
+                </listitem>
+            </itemizedlist>
+      </sect1>
     </chapter>
 
     <chapter id="XML-LibXML-Node">
@@ -4110,6 +4168,17 @@ $ec14nstring = $node-&gt;toStringEC14N($with_comments, $xpath_expression, $xpath
                 </listitem>
             </varlistentry>
         </variablelist>
+      </sect1>
+      <sect1>
+            <title>Storable</title>
+            <para>Attempting to serialize a non-Document node with
+            <literal>Storable</literal> will throw an exception. XML::LibXML
+            nodes are bound to their owner document's C data structures, so they
+            cannot be meaningfully serialized in isolation. Use
+            <function>$node-&gt;toString()</function> and re-parse, or
+            <function>$node-&gt;cloneNode(1)</function> for in-process deep copies.
+            See the <xref linkend="XML-LibXML-Document"/> manpage for Document-level
+            Storable support.</para>
       </sect1>
     </chapter>
 
