@@ -798,7 +798,8 @@ do not generate XINCLUDE START/END nodes; possible values are 0 and 1
 
 /parser, html, reader/
 
-Forbid network access; possible values are 0 and 1
+Forbid network access; possible values are 0 and 1. Defaults to 0 unless
+XML::LibXML was built with C<<<<<< -DLIBXML_DEFAULT_NONET >>>>>> (the C<<<<<< perl Makefile.PL >>>>>> prompt "Enable no_network by default?" was answered yes, or C<<<<<< XML_LIBXML_DEFAULT_NONET=1 >>>>>> was set in the environment), in which case it defaults to 1.
 
 If set to true, all attempts to fetch non-local resources (such as DTD or
 external entities) will fail (unless custom callbacks are defined).

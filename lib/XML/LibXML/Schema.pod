@@ -32,9 +32,9 @@ validation. As of 2.6.32, libxml2 only supports decimal types up to 24 digits
 
 The constructor of XML::LibXML::Schema needs to be called with list of
 parameters. At least location or string parameter is required to specify source
-of schema. Optional parameter no_network set to 1 cause that parser would not
-access network and optional parameter recover set 1 cause that parser would not
-call die() on errors.
+of schema. Optional parameter no_network set to 1 causes the parser to forbid
+network access (this is already the default when XML::LibXML was built with C<<<<<< LIBXML_DEFAULT_NONET >>>>>>). Optional parameter recover set to 1 causes the parser to not call die() on
+errors.
 
 It is important, that each schema only have a single source.
 

@@ -75,6 +75,27 @@ my %xsbuild_concat = (
 if ($ENV{DEVELOPER}) {
   $xsbuild_concat{DEFINE} .= ' -Wall -Wextra -Wno-unused-parameter -Werror=implicit-function-declaration';
 }
+
+# Offer to compile with no_network => 1 as the default for all parsers.
+# Env var lets automated builds skip the interactive prompt.
+if (defined $ENV{XML_LIBXML_DEFAULT_NONET}) {
+  if ($ENV{XML_LIBXML_DEFAULT_NONET}) {
+    $xsbuild_concat{DEFINE} .= ' -DLIBXML_DEFAULT_NONET';
+    print "XML_LIBXML_DEFAULT_NONET=$ENV{XML_LIBXML_DEFAULT_NONET}: enabling no_network by default\n";
+  }
+} else {
+  my $ans = prompt(
+    "\nXML::LibXML can forbid network access during XML parsing by default\n"
+    . "(DTD fetches, entity resolution, schema imports).  This is more secure\n"
+    . "but MAY BREAK existing code that expects network access to be on.\n"
+    . "Enable no_network by default?",
+    "n"
+  );
+  if (lc($ans) =~ /^y/) {
+    $xsbuild_concat{DEFINE} .= ' -DLIBXML_DEFAULT_NONET';
+  }
+}
+
 my %xsbuild = Alien::Base::Wrapper->mm_args;  # Might contain a definition of DEFINE, must thus concatenate.
 while (my ($k, $v) = each %xsbuild_concat) {
   my $base_val = $xsbuild{$k};
@@ -99,7 +120,7 @@ my %WriteMakefileArgs = (
   "MIN_PERL_VERSION" => '5.008001',
   "VERSION_FROM" => "LibXML.pm",
   'META_MERGE' => {
-    'dynamic_config' => 0,
+    'dynamic_config' => 1,
     'meta-spec' => {version => 2},
     'no_index' => {directory => ['xt']},
     'resources' => {

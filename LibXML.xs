@@ -1661,6 +1661,19 @@ HAVE_READER()
     OUTPUT:
         RETVAL
 
+# Whether Makefile.PL was run with -DLIBXML_DEFAULT_NONET (user chose
+# secure defaults at build time).
+int
+DEFAULT_NONET()
+    CODE:
+#ifdef LIBXML_DEFAULT_NONET
+        RETVAL = 1;
+#else
+        RETVAL = 0;
+#endif
+    OUTPUT:
+        RETVAL
+
 int
 HAVE_THREAD_SUPPORT()
     CODE:
