@@ -13,7 +13,7 @@ See L<https://rt.cpan.org/Ticket/Display.html?id=83779>.
 
 use constant HAS_LEAKTRACE => eval{ require Test::LeakTrace };
 use constant SKIP_LEAK_TESTS => !!$INC{'Devel/Cover.pm'};
-use Test::More HAS_LEAKTRACE ? (tests => SKIP_LEAK_TESTS ? 3 : 6) : (skip_all => 'Test::LeakTrace is required.');
+use Test::More HAS_LEAKTRACE ? (tests => 6) : (skip_all => 'Test::LeakTrace is required.');
 use Test::LeakTrace;
 use XML::LibXML::Reader;
 
