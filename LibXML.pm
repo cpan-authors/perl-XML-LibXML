@@ -1283,6 +1283,14 @@ sub CLONE_SKIP {
   return $XML::LibXML::__threads_shared ? 0 : 1;
 }
 
+sub STORABLE_freeze {
+    my ($self, $cloning) = @_;
+    my $class = ref($self) || $self;
+    croak("$class objects cannot be serialized with Storable directly; "
+        . "use \$node->toString() and XML::LibXML->load_xml() instead, "
+        . "or \$node->cloneNode(1) for in-process deep copies");
+}
+
 sub isSupported {
     my $self    = shift;
     my $feature = shift;
@@ -1502,6 +1510,18 @@ sub insertPI {
 *getElementsByTagName = \&XML::LibXML::Element::getElementsByTagName;
 *getElementsByTagNameNS = \&XML::LibXML::Element::getElementsByTagNameNS;
 *getElementsByLocalName = \&XML::LibXML::Element::getElementsByLocalName;
+
+sub STORABLE_freeze {
+    my ($self, $cloning) = @_;
+    return $self->toString();
+}
+
+sub STORABLE_thaw {
+    my ($self, $cloning, $serialized) = @_;
+    my $doc = XML::LibXML->load_xml(string => $serialized);
+    $$self = $$doc;
+    $$doc = 0;
+}
 
 1;
 
