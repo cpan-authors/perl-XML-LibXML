@@ -3,9 +3,12 @@ use strict;
 use warnings;
 
 use constant HAS_LEAKTRACE => eval { require Test::LeakTrace };
-use Test::More HAS_LEAKTRACE
-    ? (tests => 3)
-    : (skip_all => 'Test::LeakTrace is required for memory leak tests.');
+use constant RUNNING_COVER => !!$INC{'Devel/Cover.pm'};
+use Test::More (!HAS_LEAKTRACE || RUNNING_COVER)
+    ? (skip_all => RUNNING_COVER
+        ? 'Test::LeakTrace is unreliable under Devel::Cover'
+        : 'Test::LeakTrace is required for memory leak tests.')
+    : (tests => 3);
 use Test::LeakTrace;
 
 use XML::LibXML;
