@@ -2007,6 +2007,7 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
             sax = PSaxGetHandler();
             ctxt = xmlCreatePushParserCtxt(sax, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
+                xmlFree(sax);
                 CLEANUP_ERROR_HANDLER;
                 REPORT_ERROR(recover ? recover : 1);
                 croak("Could not create xml push parser context!\n");
@@ -2146,7 +2147,6 @@ _parse_sax_file(self, filename_sv)
             real_obj = LibXML_init_parser(self, ctxt);
             recover = LibXML_get_recover(real_obj);
 
-            ctxt->sax = PSaxGetHandler();
             PmmSAXInitContext( ctxt, self, saved_error );
             xs_warn( "context initialized \n");
 
@@ -2494,6 +2494,7 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
             LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
+                xmlFree(chunk);
                 CLEANUP_ERROR_HANDLER;
                 REPORT_ERROR(recover ? recover : 1);
                 croak("Could not create memory parser context!\n");
