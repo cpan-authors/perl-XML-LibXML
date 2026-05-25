@@ -2532,6 +2532,27 @@ print {$out_fh} $doc-&gt;toString;</programlisting>
                 </listitem>
             </varlistentry>
             <varlistentry>
+                <term>toBytesC14N</term>
+
+                <listitem>
+                    <para>Byte-string variant of toStringC14N(). See the documentation in <xref linkend="XML-LibXML-Node"/>.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>toBytesEC14N</term>
+
+                <listitem>
+                    <para>Byte-string variant of toStringEC14N(). See the documentation in <xref linkend="XML-LibXML-Node"/>.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>toBytesC14N_v1_1</term>
+
+                <listitem>
+                    <para>Byte-string variant of toStringC14N_v1_1(). See the documentation in <xref linkend="XML-LibXML-Node"/>.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>serialize</term>
 
                 <listitem>
@@ -3853,6 +3874,51 @@ $ec14nstring = $node-&gt;toStringEC14N($with_comments, $xpath_expression, $xpath
 		    An ARRAY reference can be passed as the last argument $inclusive_prefix_list,
 		    listing namespace prefixes that are to be handled in the manner described by the Canonical XML Recommendation (i.e. preserved in the output even if the namespace is not used). C.f. the spec for details.
 	            </para>
+                </listitem>
+            </varlistentry>
+
+            <varlistentry>
+                <term>toBytesC14N</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$bytes = $node-&gt;toBytesC14N();
+$bytes = $node-&gt;toBytesC14N($with_comments, $xpath_expression , $xpath_context);</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>Behaves like toStringC14N() but returns the result
+                    as a byte string (octets) with the UTF-8 flag off. This is
+                    useful when the canonical form needs to be fed to a binary
+                    consumer such as a digest function (e.g. Digest::SHA) or
+                    written to a binary stream, where Perl's UTF-8 flag could
+                    cause unwanted encoding conversions.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>toBytesC14N_v1_1</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$bytes = $node-&gt;toBytesC14N_v1_1();
+$bytes = $node-&gt;toBytesC14N_v1_1($with_comments, $xpath_expression , $xpath_context);</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>Byte-string variant of toStringC14N_v1_1(). Returns
+                    octets with the UTF-8 flag off.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>toBytesEC14N</term>
+
+                <listitem>
+                    <funcsynopsis>
+                        <funcsynopsisinfo>$bytes = $node-&gt;toBytesEC14N();
+$bytes = $node-&gt;toBytesEC14N($with_comments, $xpath_expression, $inclusive_prefix_list);
+$bytes = $node-&gt;toBytesEC14N($with_comments, $xpath_expression, $xpath_context, $inclusive_prefix_list);</funcsynopsisinfo>
+                    </funcsynopsis>
+
+                    <para>Byte-string variant of toStringEC14N(). Returns
+                    octets with the UTF-8 flag off.</para>
                 </listitem>
             </varlistentry>
 
