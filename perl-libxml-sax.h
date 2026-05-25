@@ -26,6 +26,19 @@ extern "C" {
 
 #define croak_obj Perl_croak(aTHX_ NULL)
 
+/* Exception deferred from a libxml2 callback (GH #258).
+ *
+ * Callbacks registered with libxml2 (entity loaders, error handlers,
+ * SAX handlers, I/O callbacks) must never croak(). croak() performs a
+ * longjmp which skips over libxml2 cleanup code, causing memory leaks
+ * or worse. Instead, callbacks store the exception here and signal an
+ * error to libxml2 (xmlStopParser, error return value). The exception
+ * is re-thrown after the parser operation completes and cleanup runs. */
+extern SV *LibXML_pending_exception;
+
+void LibXML_defer_exception(void);
+void LibXML_defer_error(const char *msg);
+void LibXML_rethrow_deferred(void);
 
 /* has to be called in BOOT sequence */
 void

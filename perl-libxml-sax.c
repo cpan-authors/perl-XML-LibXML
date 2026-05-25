@@ -57,6 +57,7 @@ typedef struct {
     xmlDocPtr ns_stack_root;
     SV * handler;
     SV * saved_error;
+    xmlParserCtxtPtr ctxt;
     struct CBuffer *charbuf;
     int joinchars;
 } PmmSAXVector;
@@ -335,6 +336,7 @@ PmmSAXInitContext( xmlParserCtxtPtr ctxt, SV * parser, SV * saved_error )
     vec->locator = NULL;
 
     vec->saved_error = saved_error;
+    vec->ctxt = ctxt;
 
     vec->parser  = SvREFCNT_inc( parser );
     th = hv_fetch( (HV*)SvRV(parser), "HANDLER", 7, 0 );
@@ -449,7 +451,8 @@ PSaxStartPrefix( PmmSAXVectorPtr sax, const xmlChar * prefix,
     call_method( "start_prefix_mapping", G_SCALAR | G_EVAL | G_DISCARD );
     sv_2mortal(rv);
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(sax->ctxt);
     }
     FREETMPS ;
     LEAVE ;
@@ -493,7 +496,8 @@ PSaxEndPrefix( PmmSAXVectorPtr sax, const xmlChar * prefix,
     call_method( "end_prefix_mapping", G_SCALAR | G_EVAL | G_DISCARD );
     sv_2mortal(rv);
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(sax->ctxt);
     }
 
     FREETMPS ;
@@ -934,7 +938,8 @@ PSaxSetDocumentLocator(void *ctx, xmlSAXLocatorPtr loc)
     sv_2mortal(rv) ;
 
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -969,7 +974,12 @@ PSaxStartDocument(void * ctx)
 
         call_method( "start_document", G_SCALAR | G_EVAL | G_DISCARD );
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
+            FREETMPS ;
+            LEAVE ;
+            CLEAR_SERROR_HANDLER
+            return 0;
         }
 
         SPAGAIN;
@@ -1003,7 +1013,8 @@ PSaxStartDocument(void * ctx)
 	CLEAR_SERROR_HANDLER
         sv_2mortal(rv);
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
         }
 
         FREETMPS ;
@@ -1039,7 +1050,8 @@ PSaxEndDocument(void * ctx)
 
     call_pv( "XML::LibXML::_SAXParser::end_document", G_SCALAR | G_EVAL | G_DISCARD );
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -1095,7 +1107,8 @@ PSaxStartElement(void *ctx, const xmlChar * name, const xmlChar** attr)
     sv_2mortal(rv) ;
 
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -1138,7 +1151,8 @@ PSaxEndElement(void *ctx, const xmlChar * name) {
     sv_2mortal(rv);
 
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -1186,7 +1200,8 @@ PSaxCharactersDispatch(void *ctx, const xmlChar * ch, int len) {
         call_method( "characters", G_SCALAR | G_EVAL | G_DISCARD );
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
         }
         FREETMPS ;
         LEAVE ;
@@ -1275,7 +1290,8 @@ PSaxComment(void *ctx, const xmlChar * ch) {
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
         }
 
         FREETMPS ;
@@ -1313,7 +1329,12 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
         PUTBACK;
         call_method( "start_cdata", G_SCALAR | G_EVAL | G_DISCARD );
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
+            FREETMPS ;
+            LEAVE ;
+            CLEAR_SERROR_HANDLER
+            return 0;
         }
 
         SPAGAIN;
@@ -1328,7 +1349,13 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
 
         call_method( "characters", G_SCALAR | G_EVAL | G_DISCARD);
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            sv_2mortal(rv);
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
+            FREETMPS ;
+            LEAVE ;
+            CLEAR_SERROR_HANDLER
+            return 0;
         }
 
         SPAGAIN;
@@ -1341,7 +1368,8 @@ PSaxCDATABlock(void *ctx, const xmlChar * ch, int len) {
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
         }
 
         FREETMPS ;
@@ -1389,7 +1417,8 @@ PSaxProcessingInstruction( void * ctx, const xmlChar * target, const xmlChar * d
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
         }
 
         FREETMPS ;
@@ -1435,7 +1464,12 @@ void PSaxExternalSubset (void * ctx,
         sv_2mortal(rv);
 
         if (SvTRUE(ERRSV)) {
-            croak_obj;
+            LibXML_defer_exception();
+            xmlStopParser(ctxt);
+            FREETMPS ;
+            LEAVE ;
+            CLEAR_SERROR_HANDLER
+            return;
         }
 
         PUSHMARK(SP) ;
@@ -1551,7 +1585,8 @@ PmmSaxWarning(void * ctx, const char * msg, ...)
     call_pv( "XML::LibXML::_SAXParser::warning", G_SCALAR | G_EVAL | G_DISCARD );
 
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -1613,7 +1648,8 @@ PmmSaxError(void * ctx, const char * msg, ...)
     call_pv( "XML::LibXML::_SAXParser::fatal_error", G_SCALAR | G_EVAL | G_DISCARD );
 #endif
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
@@ -1660,7 +1696,8 @@ PmmSaxFatalError(void * ctx, const char * msg, ...)
     PUTBACK;
     call_pv( "XML::LibXML::_SAXParser::fatal_error", G_SCALAR | G_EVAL | G_DISCARD );
     if (SvTRUE(ERRSV)) {
-        croak_obj;
+        LibXML_defer_exception();
+        xmlStopParser(ctxt);
     }
 
     FREETMPS ;
