@@ -129,6 +129,31 @@ fix_owner( n, p )
     OUTPUT:
         RETVAL
 
+# GH #148: verify PmmContextREFCNT_dec only frees when refcount <= 0
+int
+_test_context_refcnt_dec_double()
+    PREINIT:
+        xmlParserCtxtPtr ctxt;
+        ProxyNodePtr proxy;
+    CODE:
+        ctxt = xmlCreatePushParserCtxt(NULL, NULL, NULL, 0, NULL);
+        proxy = (ProxyNodePtr)xmlMalloc(sizeof(ProxyNode));
+        if (proxy == NULL || ctxt == NULL) {
+            if (ctxt) xmlFreeParserCtxt(ctxt);
+            if (proxy) xmlFree(proxy);
+            croak("allocation failed");
+        }
+        proxy->node  = (xmlNodePtr)ctxt;
+        proxy->owner = NULL;
+        proxy->count = 0;
+        PmmREFCNT_inc(proxy);
+        PmmREFCNT_inc(proxy);
+        PmmContextREFCNT_dec(proxy);
+        RETVAL = PmmREFCNT(proxy);
+        PmmContextREFCNT_dec(proxy);
+    OUTPUT:
+        RETVAL
+
 #ifdef HAVE_LIBXML_MEMORY_DEBUG
 
 int
