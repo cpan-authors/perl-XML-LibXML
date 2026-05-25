@@ -2,6 +2,10 @@ use strict;
 use warnings;
 use Test::More;
 
+if ($^O eq 'MSWin32') {
+    plan skip_all => 'Variable::Magic + C14N interaction crashes libxml2 on Windows';
+}
+
 eval { require Variable::Magic; Variable::Magic->import(qw(wizard cast)) };
 if ($@) {
     plan skip_all => 'Variable::Magic required for TOCTOU vulnerability test';
