@@ -1760,10 +1760,6 @@ _parse_string(self, string, dir = &PL_sv_undef)
             real_obj = LibXML_init_parser(self, ctxt);
             recover = LibXML_get_recover(real_obj);
 
-
-            if ( directory != NULL ) {
-                ctxt->directory = directory;
-            }
             ctxt->_private = (void*)self;
 
             /* make libxml2-2.6 display line number on error */
@@ -1780,7 +1776,6 @@ _parse_string(self, string, dir = &PL_sv_undef)
             xmlParseDocument(ctxt);
             xs_warn( "document parsed \n");
 
-            ctxt->directory = NULL;
             well_formed = ctxt->wellFormed;
             valid = ctxt->valid;
             validate = ctxt->validate;
@@ -1858,6 +1853,9 @@ _parse_sax_string(self, string)
             }
 
             PmmSAXCloseContext(ctxt);
+            if (ctxt->myDoc != NULL) {
+                xmlFreeDoc(ctxt->myDoc);
+            }
             xmlFreeParserCtxt(ctxt);
         }
 
@@ -1918,9 +1916,6 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
 	    /* dictionaries not support yet */
 	    ctxt->dictNames = 0;
 #endif
-            if ( directory != NULL ) {
-                ctxt->directory = directory;
-            }
             ctxt->_private = (void*)self;
             xs_warn( "context initialized \n");
             {
@@ -1935,7 +1930,6 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
                 xs_warn( "document parsed \n");
             }
 
-            ctxt->directory = NULL;
             well_formed = ctxt->wellFormed;
             valid = ctxt->valid;
             validate = ctxt->validate;
@@ -2015,9 +2009,6 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
             real_obj = LibXML_init_parser(self, ctxt);
             recover = LibXML_get_recover(real_obj);
 
-            if ( directory != NULL ) {
-                ctxt->directory = directory;
-            }
             PmmSAXInitContext( ctxt, self, saved_error );
             xs_warn( "context initialized \n");
 
@@ -2033,11 +2024,13 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
                 xs_warn( "document parsed \n");
             }
 
-            ctxt->directory = NULL;
             xmlFree(ctxt->sax);
             ctxt->sax = NULL;
             xmlFree(sax);
             PmmSAXCloseContext(ctxt);
+            if (ctxt->myDoc != NULL) {
+                xmlFreeDoc(ctxt->myDoc);
+            }
             xmlFreeParserCtxt(ctxt);
         }
         CLEANUP_ERROR_HANDLER;
@@ -2146,7 +2139,6 @@ _parse_sax_file(self, filename_sv)
             real_obj = LibXML_init_parser(self, ctxt);
             recover = LibXML_get_recover(real_obj);
 
-            ctxt->sax = PSaxGetHandler();
             PmmSAXInitContext( ctxt, self, saved_error );
             xs_warn( "context initialized \n");
 
@@ -2156,6 +2148,9 @@ _parse_sax_file(self, filename_sv)
             }
 
             PmmSAXCloseContext(ctxt);
+            if (ctxt->myDoc != NULL) {
+                xmlFreeDoc(ctxt->myDoc);
+            }
             xmlFreeParserCtxt(ctxt);
         }
 
@@ -2514,6 +2509,9 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
 
             xmlFree( handler );
             PmmSAXCloseContext(ctxt);
+            if (ctxt->myDoc != NULL) {
+                xmlFreeDoc(ctxt->myDoc);
+            }
             xmlFreeParserCtxt(ctxt);
 
             /* free the chunk we created */
@@ -2673,7 +2671,9 @@ _end_push(self, pctxt, restore)
         PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
 
         if ( real_doc != NULL ) {
-            if ( restore || well_formed ) {
+            if (!LibXML_will_die_ctx(saved_error, restore)
+                && (restore || well_formed)
+            ) {
                 RETVAL = LibXML_NodeToSv( real_obj, INT2PTR(xmlNodePtr,real_doc) );
             } else {
                 xmlFreeDoc(real_doc);
@@ -2711,9 +2711,10 @@ _end_sax_push(self, pctxt)
         xmlParseChunk(ctxt, "", 0, 1); /* finish the parse */
         xs_warn( "Finished with SAX push parser\n" );
 
-        xmlFree(ctxt->sax);
-        ctxt->sax = NULL;
         PmmSAXCloseContext(ctxt);
+        if (ctxt->myDoc) {
+            xmlFreeDoc(ctxt->myDoc);
+        }
         xmlFreeParserCtxt(ctxt);
         PmmNODE( SvPROXYNODE( pctxt ) ) = NULL;
 
@@ -2962,6 +2963,7 @@ _toString(self, format=0)
             else {
                 xmlAddPrevSibling(self->children, INT2PTR(xmlNodePtr,intSubset));
             }
+            self->intSubset = intSubset;
         }
 
         xmlSaveNoEmptyTags = oldTagFlag;
@@ -3046,6 +3048,7 @@ toFH( self, filehandler, format=0 )
             else {
                 xmlAddPrevSibling(self->children, INT2PTR(xmlNodePtr,intSubset));
             }
+            self->intSubset = intSubset;
         }
 
         xmlIndentTreeOutput = t_indent_var;
@@ -3683,32 +3686,19 @@ createAttributeNS( self, URI, pname, pvalue=&PL_sv_undef )
                 }
 
                 if ( ns == NULL ) {
-                    xmlFree(nsURI);
-                    xmlFree(localname);
-                    if ( prefix ) {
-                        xmlFree(prefix);
-                    }
-                    xmlFree(name);
-                    if ( value ) {
-                        xmlFree(value);
-                    }
-                    XSRETURN_UNDEF;
+                    RETVAL = &PL_sv_undef;
+                }
+                else {
+                    newAttr = xmlNewDocProp( self, localname, value );
+                    xmlSetNs((xmlNodePtr)newAttr, ns);
+
+                    RETVAL = PmmNodeToSv((xmlNodePtr)newAttr, PmmPROXYNODE(self) );
                 }
 
-                newAttr = xmlNewDocProp( self, localname, value );
-                xmlSetNs((xmlNodePtr)newAttr, ns);
-
-                RETVAL = PmmNodeToSv((xmlNodePtr)newAttr, PmmPROXYNODE(self) );
-
-                xmlFree(nsURI);
-                xmlFree(name);
                 if ( prefix ) {
                     xmlFree(prefix);
                 }
                 xmlFree(localname);
-                if ( value ) {
-                    xmlFree(value);
-                }
             }
             else {
                 xmlFree(nsURI);
@@ -3725,11 +3715,15 @@ createAttributeNS( self, URI, pname, pvalue=&PL_sv_undef )
             buffer = xmlEncodeEntitiesReentrant(self, value);
             newAttr = xmlNewDocProp( self, name, buffer );
             RETVAL = PmmNodeToSv((xmlNodePtr)newAttr,PmmPROXYNODE(self));
-            xmlFree(name);
             xmlFree(buffer);
-            if ( value ) {
-                xmlFree(value);
-            }
+        }
+
+        if (nsURI != NULL) {
+            xmlFree(nsURI);
+        }
+        xmlFree(name);
+        if (value != NULL) {
+            xmlFree(value);
         }
     OUTPUT:
         RETVAL
@@ -6738,6 +6732,7 @@ substringData( self, offset, length )
                 substr = xmlUTF8Strsub( data, offset, length );
                 RETVAL = C2Sv( (const xmlChar*)substr, NULL );
                 xmlFree( substr );
+                xmlFree(data);
             }
             else {
                 XSRETURN_UNDEF;
@@ -6872,6 +6867,10 @@ deleteData( self, offset, length )
 
                 domSetNodeValue( self, new );
                 xmlFree(new);
+            }
+
+            if (data != NULL) {
+                xmlFree(data);
             }
         }
 

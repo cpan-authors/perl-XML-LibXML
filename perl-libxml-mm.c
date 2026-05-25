@@ -861,6 +861,9 @@ PmmContextREFCNT_dec( ProxyNodePtr node )
                     libnode->_private = NULL;
                 }
                 PmmNODE( node )   = NULL;
+                if (libnode->myDoc != NULL) {
+                    xmlFreeDoc(libnode->myDoc);
+                }
                 xmlFreeParserCtxt(libnode);
             }
         }

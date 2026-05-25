@@ -5,7 +5,8 @@ requires 'XML::SAX', '0.11';
 requires 'XML::SAX::Base';
 
 # Optional test-time modules. Without these, several t/*.t scripts skip:
-#   Test::LeakTrace    -> t/48_memleak_rt_83744.t, t/48_RH5_double_free_rt83779.t
+#   Test::LeakTrace    -> t/48_memleak_rt_83744.t, t/48_RH5_double_free_rt83779.t,
+#                         t/48_memleak_memory_leaks_branch.t
 #   URI (>= 1.35)      -> t/49callbacks_returning_undef.t (uses URI::file)
 #   Test::Differences  -> t/lib/TestHelpers.pm (better eq_or_diff output)
 on 'test' => sub {
