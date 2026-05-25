@@ -7,7 +7,7 @@ use strict;
 use warnings;
 
 # Should be 187.
-use Test::More tests => 191;
+use Test::More tests => 197;
 
 use XML::LibXML;
 
@@ -365,8 +365,17 @@ my @badnames= ("1A", "<><", "&", "-:");
     # TEST
     is( $elem->string_value , $plainstring.$stdentstring, ' TODO : Add test name' );
 
-    $elem->appendTextChild( "foo");
-    $elem->appendTextChild( "foo" => "foo&bar" );
+    my $tc1 = $elem->appendTextChild( "foo");
+    my $tc2 = $elem->appendTextChild( "foo" => "foo&bar" );
+
+    # TEST
+    isa_ok( $tc1, 'XML::LibXML::Element', 'appendTextChild returns element node' );
+    # TEST
+    is( $tc1->nodeName, 'foo', 'appendTextChild returned node has correct name' );
+    # TEST
+    isa_ok( $tc2, 'XML::LibXML::Element', 'appendTextChild with content returns element node' );
+    # TEST
+    is( $tc2->textContent, 'foo&bar', 'appendTextChild returned node has correct text content' );
 
     my @cn = $elem->childNodes;
     # TEST
@@ -377,6 +386,10 @@ my @badnames= ("1A", "<><", "&", "-:");
     ok( !$cn[1]->hasChildNodes, ' TODO : Add test name');
     # TEST
     ok( $cn[2]->hasChildNodes, ' TODO : Add test name');
+    # TEST
+    is( $tc1, $cn[1], 'appendTextChild return value is same node in child list' );
+    # TEST
+    is( $tc2, $cn[2], 'appendTextChild with content return value is same node in child list' );
 }
 
 # 6. XML::LibXML::Attr nodes

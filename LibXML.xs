@@ -6584,7 +6584,7 @@ appendText( self, string )
         xmlFree(content);
 
 
-void
+SV *
 appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
         xmlNodePtr self
         SV * strname
@@ -6594,6 +6594,7 @@ appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
         xmlChar * name;
         xmlChar * content = NULL;
         xmlChar * encstr  = NULL;
+        xmlNodePtr newNode = NULL;
     INIT:
         name    = nodeSv2C( strname, self );
         if ( xmlStrlen(name) == 0 ) {
@@ -6612,11 +6613,18 @@ appendTextChild( self, strname, strcontent=&PL_sv_undef, nsURI=&PL_sv_undef )
             xmlFree(content);
         }
 
-        xmlNewChild( self, NULL, name, encstr );
+        newNode = xmlNewChild( self, NULL, name, encstr );
 
         if ( encstr )
             xmlFree(encstr);
         xmlFree(name);
+
+        if ( newNode == NULL ) {
+            XSRETURN_UNDEF;
+        }
+        RETVAL = PmmNodeToSv(newNode, PmmOWNERPO(PmmPROXYNODE(self)));
+    OUTPUT:
+        RETVAL
 
 SV *
 addNewChild( self, namespaceURI, nodename )
