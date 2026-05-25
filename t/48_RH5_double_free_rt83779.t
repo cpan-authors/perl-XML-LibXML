@@ -79,17 +79,21 @@ no_leaks_ok {
     }
 } 'Check reader, without leaks';
 
-# TEST
-no_leaks_ok {
-    my $node;
-    {
-        my $r = XML::LibXML::Reader->new(string => $xml);
-        while ($r->read) {
-            $node ||= $r->preserveNode();
+SKIP: {
+    skip 'Test::LeakTrace false positive under Devel::Cover', 1
+        if $INC{'Devel/Cover.pm'};
+    # TEST
+    no_leaks_ok {
+        my $node;
+        {
+            my $r = XML::LibXML::Reader->new(string => $xml);
+            while ($r->read) {
+                $node ||= $r->preserveNode();
+            }
+            my $doc = $r->document();
         }
-        my $doc = $r->document();
-    }
-} 'Check reader with using preserveNode, without leaks';
+    } 'Check reader with using preserveNode, without leaks';
+}
 
 # TEST
 no_leaks_ok {
