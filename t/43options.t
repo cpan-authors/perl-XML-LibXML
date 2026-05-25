@@ -48,9 +48,10 @@ no_network
 
 
 {
+  my $nonet_default = XML::LibXML::DEFAULT_NONET();
   my $p = XML::LibXML->new();
   for my $opt (@all) {
-    my $ret = 0;
+    my $ret = ($opt eq 'no_network' && $nonet_default) ? 1 : 0;
     # TEST*$all
     ok(
         ($p->get_option($opt)||0) == $ret

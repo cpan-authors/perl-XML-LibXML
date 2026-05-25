@@ -262,6 +262,9 @@ use constant {
 };
 
 our $XML_LIBXML_PARSE_DEFAULTS = ( XML_PARSE_NODICT );
+if ( XML::LibXML::DEFAULT_NONET() ) {
+    $XML_LIBXML_PARSE_DEFAULTS |= XML_PARSE_NONET;
+}
 
 # this hash is made global so that applications can add names for new
 # libxml2 parser flags as temporary workaround
@@ -1088,7 +1091,7 @@ sub _html_options {
   $flags |=    64 if $opts->{suppress_warnings};
   $flags |=   128 if exists $opts->{pedantic_parser} ? $opts->{pedantic_parser} : $self->pedantic_parser;
   $flags |=   256 if exists $opts->{no_blanks} ? $opts->{no_blanks} : !$self->keep_blanks;
-  $flags |=  2048 if exists $opts->{no_network} ? $opts->{no_network} : !$self->no_network;
+  $flags |=  2048 if exists $opts->{no_network} ? $opts->{no_network} : 1;
   $flags |= 16384 if $opts->{no_cdata};
   $flags |= 65536 if $opts->{compact}; # compact small text nodes; no modification
                                          # of the tree allowed afterwards
