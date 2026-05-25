@@ -910,29 +910,6 @@ LibXML_load_external_entity(
  * Helper functions
  * **************************************************************** */
 
-/* Set xmlKeepBlanksDefault before context creation so the new context
-   inherits the correct value.  Must be called before xmlCreate*ParserCtxt.
-   See https://github.com/shlomif/perl-XML-LibXML/issues/88 */
-void
-LibXML_init_global_state( SV * self ) {
-    HV* real_obj;
-    SV** item;
-    int parserOptions = XML_PARSE_NODICT;
-
-    if ( self != NULL ) {
-        real_obj = (HV *)SvRV(self);
-        item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
-        if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
-
-        if (parserOptions & XML_PARSE_NOBLANKS) {
-            xmlKeepBlanksDefault(0);
-        }
-        else {
-            xmlKeepBlanksDefault(1);
-        }
-    }
-}
-
 HV*
 LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
     /* we fetch all switches and callbacks from the hash */
@@ -969,26 +946,6 @@ LibXML_init_parser( SV * self, xmlParserCtxtPtr ctxt ) {
             parserOptions &= ~(XML_PARSE_DTDVALID | XML_PARSE_DTDATTR | XML_PARSE_NOENT );
         }
         if (ctxt) xmlCtxtUseOptions(ctxt, parserOptions ); /* Note: sets ctxt->linenumbers = 1 */
-
-        /*
-         * Without this if/else conditional, NOBLANKS has no effect.
-         *
-         * For more information, see:
-         *
-         * https://rt.cpan.org/Ticket/Display.html?id=76696
-         *
-         * */
-        if (parserOptions & XML_PARSE_NOBLANKS) {
-            xmlKeepBlanksDefault(0);
-        }
-        else {
-            xmlKeepBlanksDefault(1);
-        }
-        /* xmlKeepBlanksDefault() only affects future contexts.
-           The current context inherited the old global value at creation time,
-           and xmlCtxtUseOptions() does not reset keepBlanks when NOBLANKS
-           is absent.  Set it explicitly to match the requested options. */
-        if (ctxt) ctxt->keepBlanks = (parserOptions & XML_PARSE_NOBLANKS) ? 0 : 1;
 
         item =  hv_fetch( real_obj, "XML_LIBXML_LINENUMBERS", 22, 0 );
         if ( item != NULL && SvTRUE(*item) ) {
@@ -1749,7 +1706,6 @@ _parse_string(self, string, dir = &PL_sv_undef)
         RETVAL = &PL_sv_undef;
         INIT_ERROR_HANDLER;
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt(ptr, len);
             if (ctxt == NULL) {
 	        CLEANUP_ERROR_HANDLER;
@@ -1839,7 +1795,6 @@ _parse_sax_string(self, string)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -1904,7 +1859,6 @@ _parse_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
-            LibXML_init_global_state(self);
             ctxt = xmlCreatePushParserCtxt(NULL, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2003,7 +1957,6 @@ _parse_sax_fh(self, fh, dir = &PL_sv_undef)
                 croak( "Empty Stream\n" );
             }
 
-            LibXML_init_global_state(self);
             sax = PSaxGetHandler();
             ctxt = xmlCreatePushParserCtxt(sax, NULL, buffer, read_length, NULL);
             if (ctxt == NULL) {
@@ -2069,7 +2022,6 @@ _parse_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2134,7 +2086,6 @@ _parse_sax_file(self, filename_sv)
         INIT_ERROR_HANDLER;
 
         {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2399,6 +2350,9 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         int recover = 0;
         xmlChar * chunk;
         xmlNodePtr rv = NULL;
+        SV** item;
+        int parserOptions = 0;
+        int oldKeepBlanks;
         PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(enc)) {
@@ -2417,7 +2371,29 @@ _parse_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         if ( chunk != NULL ) {
             recover = LibXML_get_recover(real_obj);
 
+            item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
+            if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
+
+            /*
+             * Without this if/else conditional, NOBLANKS has no effect.
+             *
+             * For more information, see:
+             *
+             * https://rt.cpan.org/Ticket/Display.html?id=76696
+             *
+             * This hack should be removed once libxml2 offers a better
+             * API. See https://gitlab.gnome.org/GNOME/libxml2/-/issues/727
+             */
+            if (parserOptions & XML_PARSE_NOBLANKS) {
+                oldKeepBlanks = xmlKeepBlanksDefault(0);
+            }
+            else {
+                oldKeepBlanks = xmlKeepBlanksDefault(1);
+            }
+
             rv = domReadWellBalancedString( NULL, chunk, recover );
+
+            xmlKeepBlanksDefault(oldKeepBlanks);
 
             if ( rv != NULL ) {
                 xmlNodePtr fragment= NULL;
@@ -2473,6 +2449,9 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         int retCode              = -1;
         xmlNodePtr nodes         = NULL;
         xmlSAXHandlerPtr handler = NULL;
+        SV** item;
+        int parserOptions = 0;
+        int oldKeepBlanks;
         PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(enc)) {
@@ -2491,7 +2470,6 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
         chunk = Sv2C(svchunk, (const xmlChar*)encoding);
 
         if ( chunk != NULL ) {
-            LibXML_init_global_state(self);
             xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt((const char*)ptr, len);
             if (ctxt == NULL) {
                 CLEANUP_ERROR_HANDLER;
@@ -2505,12 +2483,34 @@ _parse_sax_xml_chunk(self, svchunk, enc = &PL_sv_undef)
             PmmSAXInitContext( ctxt, self, saved_error );
             handler = PSaxGetHandler();
 
+            item = hv_fetch( real_obj, "XML_LIBXML_PARSER_OPTIONS", 25, 0 );
+            if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
+
+            /*
+             * Without this if/else conditional, NOBLANKS has no effect.
+             *
+             * For more information, see:
+             *
+             * https://rt.cpan.org/Ticket/Display.html?id=76696
+             *
+             * This hack should be removed once libxml2 offers a better
+             * API. See https://gitlab.gnome.org/GNOME/libxml2/-/issues/727
+             */
+            if (parserOptions & XML_PARSE_NOBLANKS) {
+                oldKeepBlanks = xmlKeepBlanksDefault(0);
+            }
+            else {
+                oldKeepBlanks = xmlKeepBlanksDefault(1);
+            }
+
             retCode = xmlParseBalancedChunkMemory( NULL,
                                                    handler,
                                                    ctxt,
                                                    0,
                                                    chunk,
                                                    &nodes );
+
+            xmlKeepBlanksDefault(oldKeepBlanks);
 
             xmlFree( handler );
             PmmSAXCloseContext(ctxt);
@@ -2579,7 +2579,6 @@ _start_push(self, with_sax=0)
         INIT_ERROR_HANDLER;
 
         /* create empty context */
-        LibXML_init_global_state(self);
         ctxt = xmlCreatePushParserCtxt( NULL, NULL, NULL, 0, NULL );
         real_obj = LibXML_init_parser(self,ctxt);
         recover = LibXML_get_recover(real_obj);
