@@ -180,15 +180,15 @@ _domReconcileNs(xmlNodePtr tree, xmlNsPtr * unused)
                 if( ns != NULL && ns->href != NULL && tree->ns->href != NULL &&
                     xmlStrcmp(ns->href,tree->ns->href) == 0 )
                 {
-                        /* Remove the declaration (if present) */
-                        if( domRemoveNsDef(tree, tree->ns) )
-                                /* Queue the namespace for freeing */
+                        /* nsDef only exists on element nodes */
+                        if( tree->type == XML_ELEMENT_NODE
+                            && domRemoveNsDef(tree, tree->ns) )
                                 *unused = _domAddNsChain(*unused, tree->ns);
 
                         /* Replace the namespace with the one found */
                         tree->ns = ns;
                 }
-                else
+                else if( tree->type == XML_ELEMENT_NODE )
                 {
                         /* If the declaration is here, we don't need to do anything */
                         if( domRemoveNsDef(tree, tree->ns) ) {
