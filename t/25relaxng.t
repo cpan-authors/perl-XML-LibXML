@@ -38,11 +38,11 @@ print "# 1 parse schema from a file\n";
 {
     my $rngschema = XML::LibXML::RelaxNG->new( location => $file );
     # TEST
-    ok ( $rngschema, ' TODO : Add test name' );
+    ok ( $rngschema, 'parse RNG schema from file' );
 
     eval { $rngschema = XML::LibXML::RelaxNG->new( location => $badfile ); };
     # TEST
-    ok( $@, ' TODO : Add test name' );
+    ok( $@, 'bad RNG schema from file throws error' );
 }
 
 print "# 2 parse schema from a string\n";
@@ -51,13 +51,13 @@ print "# 2 parse schema from a string\n";
 
     my $rngschema = XML::LibXML::RelaxNG->new( string => $string );
     # TEST
-    ok ( $rngschema, ' TODO : Add test name' );
+    ok ( $rngschema, 'parse RNG schema from string' );
 
     $string = slurp($badfile);
 
     eval { $rngschema = XML::LibXML::RelaxNG->new( string => $string ); };
     # TEST
-    ok( $@, ' TODO : Add test name' );
+    ok( $@, 'bad RNG schema from string throws error' );
 }
 
 print "# 3 parse schema from a document\n";
@@ -65,12 +65,12 @@ print "# 3 parse schema from a document\n";
     my $doc       = $xmlparser->parse_file( $file );
     my $rngschema = XML::LibXML::RelaxNG->new( DOM => $doc );
     # TEST
-    ok ( $rngschema, ' TODO : Add test name' );
+    ok ( $rngschema, 'parse RNG schema from DOM document' );
 
     $doc       = $xmlparser->parse_file( $badfile );
     eval { $rngschema = XML::LibXML::RelaxNG->new( DOM => $doc ); };
     # TEST
-    ok( $@, ' TODO : Add test name' );
+    ok( $@, 'bad RNG schema from DOM throws error' );
 }
 
 print "# 4 validate a document\n";
@@ -81,13 +81,13 @@ print "# 4 validate a document\n";
     my $valid = 0;
     eval { $valid = $rngschema->validate( $doc ); };
     # TEST
-    is( $valid, 0, ' TODO : Add test name' );
+    is( $valid, 0, 'valid document passes RNG validation' );
 
     $doc       = $xmlparser->parse_file( $invalidfile );
     $valid     = 0;
     eval { $valid = $rngschema->validate( $doc ); };
     # TEST
-    ok ( $@, ' TODO : Add test name' );
+    ok ( $@, 'invalid document fails RNG validation' );
 }
 
 print "# 5 re-validate a modified document\n";
@@ -104,27 +104,27 @@ EOXML
 
   eval{$rng->validate($doc);};
   # TEST
-  ok ($@, ' TODO : Add test name');
+  ok ($@, 'root without required attribute fails validation');
 
   $rootElem->setAttribute('name', 'rootElem');
   eval{ $rng->validate($doc); };
   # TEST
-  ok (!$@, ' TODO : Add test name');
+  ok (!$@, 'root with required attribute passes validation');
 
   $rootElem->appendChild($bogusElem);
   eval{$rng->validate($doc);};
   # TEST
-  ok ($@, ' TODO : Add test name');
+  ok ($@, 'added bogus child element fails validation');
 
   $bogusElem->unlinkNode();
   eval{$rng->validate($doc);};
   # TEST
-  ok (!$@, ' TODO : Add test name');
+  ok (!$@, 'removed bogus child element passes validation again');
 
   $rootElem->removeAttribute('name');
   eval{$rng->validate($doc);};
   # TEST
-  ok ($@, ' TODO : Add test name');
+  ok ($@, 'removed required attribute fails validation again');
 
 }
 
