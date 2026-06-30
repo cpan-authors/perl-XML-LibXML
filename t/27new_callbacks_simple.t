@@ -8,8 +8,8 @@ use Counter;
 
 # $Id$
 
-# Should be 14.
-use Test::More tests => 14;
+# Should be 17.
+use Test::More tests => 17;
 
 use XML::LibXML;
 use IO::File;
@@ -223,3 +223,24 @@ ok($doc, ' TODO : Add test name');
 
 is($doc->string_value(),"testbar..", ' TODO : Add test name');
 
+# --------------------------------------------------------------------- #
+# GH #283: input_callbacks rejects non-InputCallback objects
+# --------------------------------------------------------------------- #
+{
+    my $p = XML::LibXML->new();
+
+    # TEST
+    eval { $p->input_callbacks({ match => sub {} }) };
+    like($@, qr/expects an XML::LibXML::InputCallback object/,
+         'input_callbacks rejects a plain hashref');
+
+    # TEST
+    eval { $p->input_callbacks("XML::LibXML::InputCallback=HASH(0x1234)") };
+    like($@, qr/expects an XML::LibXML::InputCallback object/,
+         'input_callbacks rejects a stringified reference');
+
+    # TEST
+    eval { $p->input_callbacks(bless {}, 'Some::Other::Class') };
+    like($@, qr/expects an XML::LibXML::InputCallback object/,
+         'input_callbacks rejects an object of wrong class');
+}
