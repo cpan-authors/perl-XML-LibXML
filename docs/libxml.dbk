@@ -2510,6 +2510,31 @@ print {$out_fh} $doc-&gt;toString;</programlisting>
                     <para>If $format is 2 (or higher), libxml2 will act as $format == 1 but it add a leading and a trailing line break to each text node.</para>
 
                     <para>libxml2 uses a hard-coded indentation of 2 space characters per indentation level. This value can not be altered on run-time.</para>
+
+                    <para><emphasis>Important note about formatting and whitespace:</emphasis>
+                    The formatter only inserts indentation between child
+                    elements that are not already separated by text content.
+                    When XML is parsed normally, whitespace between tags
+                    (newlines, spaces used for indentation in the source) is
+                    preserved as text nodes. These existing text nodes prevent
+                    the formatter from adding its own indentation because it
+                    will not alter existing text.
+                    </para>
+                    <para>
+                    To get proper re-indentation, strip whitespace-only text
+                    nodes at parse time using the <literal>no_blanks</literal>
+                    option:
+                    </para>
+<programlisting>my $doc = XML::LibXML-&gt;load_xml(
+    string =&gt; $xml_string,
+    no_blanks =&gt; 1,
+);
+print $doc-&gt;toString(1);  # now produces indented output</programlisting>
+                    <para>Without <literal>no_blanks =&gt; 1</literal>, calling
+                    <function>toString(1)</function> on a document that was
+                    parsed with default settings will typically return the
+                    XML unchanged, since the original whitespace text nodes
+                    are still present.</para>
                 </listitem>
             </varlistentry>
 
