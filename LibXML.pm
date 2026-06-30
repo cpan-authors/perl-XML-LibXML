@@ -461,6 +461,10 @@ sub input_callbacks {
     my $icbclass = shift;
 
     if ( defined $icbclass ) {
+        if ( not Scalar::Util::blessed($icbclass)
+             or not $icbclass->isa('XML::LibXML::InputCallback') ) {
+            croak("input_callbacks() expects an XML::LibXML::InputCallback object");
+        }
         $self->{XML_LIBXML_CALLBACK_STACK} = $icbclass;
     }
     return $self->{XML_LIBXML_CALLBACK_STACK};
