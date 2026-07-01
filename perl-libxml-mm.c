@@ -1227,11 +1227,20 @@ nodeSv2C( SV * scalar, xmlNodePtr refnode )
                         if ( PmmNodeEncoding(real_dom) == XML_CHAR_ENCODING_NONE ) {
                             SetPmmNodeEncoding(real_dom, XML_CHAR_ENCODING_UTF8);
                         }
-                        /* the following allocates a new string (by xmlStrdup if no conversion is done) */
-                        string= PmmFastEncodeString( PmmNodeEncoding(real_dom),
-                                                 (xmlChar*) t_pv,
-                                                 (const xmlChar*)real_dom->encoding,
-                                                 len);
+                        if ( PmmNodeEncoding(real_dom) == XML_CHAR_ENCODING_UTF8 ) {
+                            /* When the document is UTF-8, non-UTF8 Perl SVs
+                               hold Latin-1 bytes — encode from Latin-1 to
+                               UTF-8, not a no-op UTF-8 copy. */
+                            string= PmmFastEncodeString( XML_CHAR_ENCODING_8859_1,
+                                                     (xmlChar*) t_pv,
+                                                     (const xmlChar*)"ISO-8859-1",
+                                                     len);
+                        } else {
+                            string= PmmFastEncodeString( PmmNodeEncoding(real_dom),
+                                                     (xmlChar*) t_pv,
+                                                     (const xmlChar*)real_dom->encoding,
+                                                     len);
+                        }
                         xs_warn( "nodeSv2C:     done!\n" );
 #ifdef HAVE_UTF8
                     } else {
@@ -1257,6 +1266,21 @@ nodeSv2C( SV * scalar, xmlNodePtr refnode )
     }
     xs_warn("nodeSv2C: no encoding !!\n");
 
+#ifdef HAVE_UTF8
+    if ( scalar != NULL && scalar != &PL_sv_undef && !DO_UTF8(scalar) ) {
+        dTHX;
+        STRLEN len = 0;
+        char * t_pv = SvPV(scalar, len);
+        if ( t_pv && len > 0 ) {
+            xmlChar *string = PmmFastEncodeString( XML_CHAR_ENCODING_8859_1,
+                                                  (xmlChar*) t_pv,
+                                                  (const xmlChar*)"ISO-8859-1",
+                                                  len);
+            if (string != NULL)
+                return string;
+        }
+    }
+#endif
     return  Sv2C( scalar, NULL );
 }
 
