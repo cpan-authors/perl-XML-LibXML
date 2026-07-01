@@ -504,7 +504,7 @@ sub check_mem {
         }
         close ($FH);
 
-        if ($LibXML::TOTALMEM != $mem{Total}) {
+        if ($initialise or $LibXML::TOTALMEM != $mem{Total}) {
             warn("LEAK! : ", $mem{Total} - $LibXML::TOTALMEM, " $units\n") unless $initialise;
             $LibXML::TOTALMEM = $mem{Total};
         }
