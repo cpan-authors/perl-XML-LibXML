@@ -79,12 +79,12 @@ expression:
 
 =head2 Variables
 
-This example demonstrates C<<<<<< registerVarLookup() >>>>>> method. We use XPath variables to recycle results of previous evaluations:
+This example demonstrates C<<<<<< registerVarLookupFunc() >>>>>> method. We use XPath variables to recycle results of previous evaluations:
 
 
 
   sub var_lookup {
-    my ($varname,$ns,$data)=@_;
+    my ($data,$varname,$ns)=@_;
     return $data->{$varname};
   }
 
@@ -95,7 +95,7 @@ This example demonstrates C<<<<<< registerVarLookup() >>>>>> method. We use XPat
 
   my %variables = (
     A => $xc->find('/employees/employee[@salary>10000]'),
-    B => $areas->find('/areas/area[district='Brooklyn']/street'),
+    B => $areas->find('/areas/area[district="Brooklyn"]/street'),
   );
 
   # get names of employees from $A working in an area listed in $B
@@ -122,7 +122,9 @@ Creates a new XML::LibXML::XPathContext object with the context node set to C<<<
 
   $xpc->registerNs($prefix, $namespace_uri)
 
-Registers namespace C<<<<<< $prefix >>>>>> to C<<<<<< $namespace_uri >>>>>>.
+Registers namespace C<<<<<< $prefix >>>>>> to C<<<<<< $namespace_uri >>>>>>. Note that namespace registrations are per-context: they are not shared
+between C<<<<<< XML::LibXML::XPathContext >>>>>> objects. If you create a new context for a sub-tree, you must register all
+required namespaces on the new context as well.
 
 
 =item unregisterNs

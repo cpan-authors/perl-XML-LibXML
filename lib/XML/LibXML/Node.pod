@@ -440,6 +440,18 @@ independent prefix-to-namespace mapping can be defined. For example:
   $xpc->registerNs('x', 'http://www.w3.org/1999/xhtml');
   $xpc->find('/x:html',$node);
 
+Note that namespace registrations are per-context: if you create a new C<<<<<< XML::LibXML::XPathContext >>>>>> for a child node, you must register the namespaces again:
+
+
+
+  my $xpc = XML::LibXML::XPathContext->new($doc);
+  $xpc->registerNs('g', 'http://www.topografix.com/GPX/1/1');
+  for my $wpt ($xpc->findnodes('/g:gpx/g:wpt')) {
+      my $xpc2 = XML::LibXML::XPathContext->new($wpt);
+      $xpc2->registerNs('g', 'http://www.topografix.com/GPX/1/1');
+      my $name = $xpc2->findvalue('g:name');
+  }
+
 
 
 =item *
