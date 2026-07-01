@@ -153,6 +153,9 @@ typedef enum {
 static xmlExternalEntityLoader LibXML_old_ext_ent_loader = NULL;
 static xmlExternalEntityLoader LibXML_old_ext_ent_loader_global = NULL;
 
+/* saved xmlKeepBlanksDefault value, restored in LibXML_cleanup_parser */
+static int LibXML_old_keep_blanks = 1;
+
 /* global external entity loader */
 SV *EXTERNAL_ENTITY_LOADER_FUNC = (SV *)NULL;
 
@@ -925,10 +928,10 @@ LibXML_init_global_state( SV * self ) {
         if (item != NULL && SvOK(*item)) parserOptions = sv_2iv(*item);
 
         if (parserOptions & XML_PARSE_NOBLANKS) {
-            xmlKeepBlanksDefault(0);
+            LibXML_old_keep_blanks = xmlKeepBlanksDefault(0);
         }
         else {
-            xmlKeepBlanksDefault(1);
+            LibXML_old_keep_blanks = xmlKeepBlanksDefault(1);
         }
     }
 }
@@ -1028,6 +1031,7 @@ LibXML_cleanup_parser() {
 #ifndef WITH_SERRORS
     xmlGetWarningsDefaultValue = 0;
 #endif
+    xmlKeepBlanksDefault(LibXML_old_keep_blanks);
     if (EXTERNAL_ENTITY_LOADER_FUNC == NULL && LibXML_old_ext_ent_loader != NULL)
     {
         xmlSetExternalEntityLoader( (xmlExternalEntityLoader)LibXML_old_ext_ent_loader );
