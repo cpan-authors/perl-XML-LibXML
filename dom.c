@@ -30,8 +30,7 @@ domClearPSVI(xmlNodePtr tree) {
         tree->psvi = NULL;
         prop = tree->properties;
         while (prop != NULL) {
-            if (tree->type == XML_ATTRIBUTE_NODE)
-                ((xmlAttrPtr) prop)->psvi = NULL;
+            prop->psvi = NULL;
             domClearPSVIInList(prop->children);
             prop = prop->next;
         }
@@ -931,13 +930,13 @@ domGetNodeValue( xmlNodePtr n ) {
                     xmlBufferPtr buffer = xmlBufferCreate();
                     /* buffer = xmlBufferCreate(); */
                     xmlNodeDump( buffer, n->doc, cnode, 0, 0 );
-                    if ( buffer->content != NULL ) {
+                    if ( xmlBufferLength(buffer) > 0 ) {
                         xs_warn( "add item" );
                         if ( retval != NULL ) {
-                            retval = xmlStrcat( retval, buffer->content );
+                            retval = xmlStrcat( retval, xmlBufferContent(buffer) );
                         }
                         else {
-                            retval = xmlStrdup( buffer->content );
+                            retval = xmlStrdup( xmlBufferContent(buffer) );
                         }
                     }
                     xmlBufferFree( buffer );
