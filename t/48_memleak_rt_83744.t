@@ -10,8 +10,8 @@ See L<https://rt.cpan.org/Ticket/Display.html?id=83744>.
 
 =cut
 
-use constant HAS_LEAKTRACE => eval{ require Test::LeakTrace };
-use Test::More HAS_LEAKTRACE ? (tests => 2) : (skip_all => 'Test::LeakTrace is required for memory leak tests.');
+use constant HAS_LEAKTRACE => !$INC{'Devel/Cover.pm'} && eval{ require Test::LeakTrace };
+use Test::More HAS_LEAKTRACE ? (tests => 2) : (skip_all => 'Test::LeakTrace is required for memory leak tests (skipped under Devel::Cover).');
 use Test::LeakTrace;
 
 # TEST

@@ -1726,6 +1726,7 @@ _parse_string(self, string, dir = &PL_sv_undef)
         int validate;
         xmlDocPtr real_doc;
         int recover = 0;
+        char * input_filename = NULL;
 	PREINIT_SAVED_ERROR
     INIT:
         if (SvPOK(dir)) {
@@ -1786,13 +1787,27 @@ _parse_string(self, string, dir = &PL_sv_undef)
             validate = ctxt->validate;
             real_doc = ctxt->myDoc;
             ctxt->myDoc = NULL;
+            /* Take ownership of input->filename before freeing the
+             * context. In libxml2 >= 2.14, doc->URL may point to the
+             * same allocation rather than a copy, causing double-free
+             * when we xmlFree(doc->URL) after xmlFreeParserCtxt already
+             * freed input->filename. (GH #113) */
+            if (ctxt->input != NULL) {
+                input_filename = (char *)ctxt->input->filename;
+                ctxt->input->filename = NULL;
+            }
             xmlFreeParserCtxt(ctxt);
         }
-        if ( real_doc != NULL ) {
-  	    if (real_doc->URL != NULL) { /* free "" assigned above */
-               xmlFree((char*) real_doc->URL);
-               real_doc->URL = NULL;
+        if (real_doc != NULL && real_doc->URL != NULL) {
+            if ((const char *)real_doc->URL != input_filename) {
+                xmlFree(input_filename);
             }
+            xmlFree((char *)real_doc->URL);
+            real_doc->URL = NULL;
+        } else {
+            xmlFree(input_filename);
+        }
+        if ( real_doc != NULL ) {
 
             if ( directory == NULL ) {
                 SV * newURI = sv_2mortal(newSVpvf("unknown-%p", (void*)real_doc));

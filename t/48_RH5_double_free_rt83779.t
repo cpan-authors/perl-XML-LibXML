@@ -11,8 +11,8 @@ See L<https://rt.cpan.org/Ticket/Display.html?id=83779>.
 
 =cut
 
-use constant HAS_LEAKTRACE => eval{ require Test::LeakTrace };
-use Test::More HAS_LEAKTRACE ? (tests => 6) : (skip_all => 'Test::LeakTrace is required.');
+use constant HAS_LEAKTRACE => !$INC{'Devel/Cover.pm'} && eval{ require Test::LeakTrace };
+use Test::More HAS_LEAKTRACE ? (tests => 6) : (skip_all => 'Test::LeakTrace is required (skipped under Devel::Cover).');
 use Test::LeakTrace;
 use XML::LibXML::Reader;
 
