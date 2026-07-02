@@ -13,7 +13,7 @@ BEGIN{
      plan skip_all => "Reader not supported in this libxml2 build";
      exit;
   } else {
-     plan tests => 100;
+     plan tests => 103;
   }
 
   use_ok('XML::LibXML::Reader');
@@ -127,6 +127,24 @@ for my $how (qw(FD IO)) {
   is($reader->name, "countries","name in string");
   ok($reader->document,"document");
   ok($reader->document->isSameNode($DOM),"document is DOM");
+}
+
+# DOM reader must not leak the document proxy refcount
+{
+  require XML::LibXML::Devel;
+  my $DOM = XML::LibXML->new->parse_file($file);
+  my $raw = XML::LibXML::Devel::node_from_perl($DOM);
+  my $rc_before = XML::LibXML::Devel::refcnt($raw);
+  {
+    my $reader = XML::LibXML::Reader->new(DOM => $DOM);
+    $reader->read;
+  }
+  my $rc_after = XML::LibXML::Devel::refcnt($raw);
+  is($rc_after, $rc_before,
+     "DOM reader destroy restores document proxy refcount");
+  # Verify refcount is sane (typically 1)
+  cmp_ok($rc_after, '>=', 1, "document proxy refcount is positive");
+  cmp_ok($rc_after, '<=', 2, "document proxy refcount is not inflated");
 }
 
 # Expand
