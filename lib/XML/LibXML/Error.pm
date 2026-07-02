@@ -221,6 +221,8 @@ sub as_string {
              and
              $self->{line})  {
         $where="Entity: line $self->{line}";
+    } elsif ($self->{line}) {
+        $where="line $self->{line}";
     }
     if ($self->{nodename}) {
         $where.=": element ".$self->{nodename};
