@@ -15,7 +15,7 @@ use Test::More;
 use XML::LibXML;
 
 if ( XML::LibXML::LIBXML_VERSION >= 20510 ) {
-    plan tests => 12;
+    plan tests => 14;
 }
 else {
     plan skip_all => 'No Schema Support compiled.';
@@ -132,4 +132,39 @@ EOF
     like( $@, qr{Attempt to load network entity}, 'Schema from buffer with external import and no_network => 1 throws an exception.' );
     # TEST
     ok( !defined $schema, 'Schema from buffer with external import and no_network => 1 is not loaded.' );
+}
+
+# 6 revalidation clears attribute PSVI from prior validation
+{
+    my $doc = $xmlparser->load_xml(string => <<'EOF');
+<order id="123" status="open">
+  <item count="1">Widget</item>
+</order>
+EOF
+
+    my $schema = XML::LibXML::Schema->new(string => <<'EOF');
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="order">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="item">
+          <xs:complexType mixed="true">
+            <xs:attribute name="count" type="xs:integer" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:integer" use="required"/>
+      <xs:attribute name="status" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+EOF
+
+    eval { $schema->validate($doc) };
+    # TEST
+    is( $@, '', 'first validation with typed attributes succeeds' );
+
+    eval { $schema->validate($doc) };
+    # TEST
+    is( $@, '', 'revalidation with typed attributes succeeds (PSVI cleared)' );
 }
