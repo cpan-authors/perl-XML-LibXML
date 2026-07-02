@@ -8483,8 +8483,10 @@ _newForDOM(CLASS, perl_doc)
 	const char* CLASS
 	SV * perl_doc
     CODE:
-        PmmREFCNT_inc(SvPROXYNODE(perl_doc)); /* _dec in DESTROY */
+        PmmREFCNT_inc(SvPROXYNODE(perl_doc));
         RETVAL = xmlReaderWalker((xmlDocPtr) PmmSvNode(perl_doc));
+        if (RETVAL != NULL)
+            LibXML_set_reader_preserve_flag(RETVAL);
     OUTPUT:
 	RETVAL
 
