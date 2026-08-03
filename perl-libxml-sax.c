@@ -323,6 +323,10 @@ PmmSAXInitContext( xmlParserCtxtPtr ctxt, SV * parser, SV * saved_error )
 
     CLEAR_SERROR_HANDLER
     vec = (PmmSAXVector*) xmlMalloc( sizeof(PmmSAXVector) );
+    if ( vec == NULL )
+    {
+        croak("Out of memory in PmmSAXInitContext");
+    }
 
     vec->ns_stack_root = xmlNewDoc(NULL);
     vec->ns_stack      = xmlNewDocNode(vec->ns_stack_root,
@@ -1662,6 +1666,10 @@ xmlSAXHandlerPtr
 PSaxGetHandler()
 {
     xmlSAXHandlerPtr retval = (xmlSAXHandlerPtr)xmlMalloc(sizeof(xmlSAXHandler));
+    if ( retval == NULL )
+    {
+        croak("Out of memory in PSaxGetHandler");
+    }
     memset(retval, 0, sizeof(xmlSAXHandler));
 
     retval->setDocumentLocator = PSaxSetDocumentLocator;
